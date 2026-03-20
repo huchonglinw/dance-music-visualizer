@@ -1,0 +1,14 @@
+{
+  "songs": [
+    {
+      "file": "watercolor.json",
+      "song": "Watercolor",
+      "artist": "Katuchat",
+      "bpm": 129.2,
+      "key": "F Major",
+      "duration": 213.75,
+      "music_start": 0.046
+    }
+  ],
+  "count": 1
+}

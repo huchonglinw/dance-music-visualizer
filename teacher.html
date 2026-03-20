@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🕺 街舞音乐教学分析器 · Watercolor Style</title>
+<title>🕺 街舞音乐教学分析器 · Katuchat - Watercolor</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -444,88 +444,122 @@ header{position:relative;z-index:1}
 
 <script>
 // ══════════════════════════════════════════════════
-// 真实节拍数据模拟（基于 librosa 分析 92 BPM Swing HipHop）
-// 模拟 Katuchat · Watercolor 风格：
-//   - BPM 92, Swing 感，每拍间隔约 0.652s
-//   - 前 4 秒：纯 Vinyl 铺底，无鼓无人声（进场感）
-//   - 第 4 秒：Kick 和 Bass 同时进入（音乐真正开始）
-//   - 第 8 秒：Snare 进入（反拍开始）
-//   - 第 12 秒：Vocal Chop 进入
-//   - 第 20 秒：Hi-Hat 密集化（能量提升）
-//   - 每 32 拍（约 20.8s）重复一个大段落
+// 从 beats/watercolor.json 加载真实 librosa 分析数据
 // ══════════════════════════════════════════════════
 
-const BPM = 92;
-const BI = 60 / BPM;           // 每拍秒数 ≈ 0.652s
-const SWING = 0.06;             // Swing 偏移：偶数拍稍后
-const TOTAL = 208;              // 3:28
-const MUSIC_START = 4.0;        // 音乐真正进来的时间点（前4秒是黑胶铺底）
+// 默认占位数据（加载 JSON 之前显示）
+let BPM = 92, TOTAL = 213, MUSIC_START = 0.05;
+let BEATS = [], BAR_STARTS = [], DRUM_EVENTS = [], BIG_EVENTS = [], LOG_ITEMS = [];
+let _dataLoaded = false;
 
-// 生成带 Swing 的节拍时间戳
-function genBeats() {
-  const beats = [];
-  let t = MUSIC_START;
-  let i = 0;
-  while (t < TOTAL) {
-    const swing_offset = (i % 2 === 1) ? SWING : 0;
-    beats.push(+(t + swing_offset).toFixed(3));
-    t += BI;
-    i++;
+// 歌曲名显示在 badge
+function updateSongBadge(data) {
+  const badge = document.querySelector('.song-badge');
+  if (badge && data.artist && data.song) {
+    badge.textContent = `🎵 ${data.artist} · ${data.song}`;
   }
-  return beats;
+  const bpmEl = document.querySelector('.stat-v.red');
+  if (bpmEl) bpmEl.textContent = data.bpm;
+  const keyEl = document.querySelector('.stat-v.amber');
+  if (keyEl) keyEl.textContent = data.key || '—';
+  const durEl = document.querySelectorAll('.stat-v')[3];
+  if (durEl) {
+    const d = data.duration||0;
+    durEl.textContent = Math.floor(d/60)+':'+(Math.floor(d%60)+'').padStart(2,'0');
+  }
 }
-const BEATS = genBeats();
 
-// 每个时间点对应的鼓点类型（模拟典型 HipHop boom-bap 节奏）
-// 基于真实 Watercolor 类型的节奏 pattern：
-//   小节内：KICK on 1, 3 (带弱拍变化)
-//          SNARE on 2, 4 (Swing 后延)
-//          HIHAT 在 1&2&3&4 之间的 8 分音符 + 偶发 16 分
-// 这里用数组 per-bar pattern 定义
-const KICK_PATTERN  = [1,0,0,0, 1,0,1,0];  // 每8拍中 kick 的位置（1=有）
-const SNARE_PATTERN = [0,1,0,1, 0,1,0,1];  // snare 反拍
-const HIHAT_PATTERN = [1,1,1,1, 1,1,1,1];  // hi-hat 全
+// 将 beats JSON 事件映射到 BIG_EVENTS 格式
+function mapEvents(jsonEvents) {
+  return jsonEvents.filter(e => e.is_cue !== false).map((e, i) => ({
+    time: e.time,
+    type: e.type,
+    icon: e.icon || '🎵',
+    msg:  e.desc || e.label || '',
+    color: e.color || '#888',
+    banner: e.is_cue === true || e.is_cue === undefined,
+  }));
+}
 
-// 生成各鼓点事件列表 { time, type }
-function genDrumEvents() {
-  const events = [];
-  BEATS.forEach((t, i) => {
-    const pos = i % 8;
-    if (KICK_PATTERN[pos])  events.push({ time: t, type: 'kick' });
-    if (SNARE_PATTERN[pos] && t >= MUSIC_START + 4) events.push({ time: t, type: 'snare' });
-    // hi-hat 从第 16 拍开始（约 10.4s 后）
-    if (HIHAT_PATTERN[pos] && t >= MUSIC_START + 10) events.push({ time: t, type: 'hihat' });
-    // 额外 16分 hi-hat（Swing 切分）
-    if (pos % 2 === 0 && t >= MUSIC_START + 10 && Math.random() > 0.4) {
-      events.push({ time: +(t + BI/2 - 0.02).toFixed(3), type: 'hihat16' });
+// 构建 DRUM_EVENTS（从 drum_events JSON 还原为 {time, type} 数组）
+function buildDrumEvents(drumData) {
+  const evs = [];
+  (drumData.kick  || []).forEach(t => evs.push({time:t, type:'kick'}));
+  (drumData.snare || []).forEach(t => evs.push({time:t, type:'snare'}));
+  (drumData.hihat || []).forEach(t => evs.push({time:t, type:'hihat'}));
+  return evs.sort((a,b) => a.time - b.time);
+}
+
+// 加载 JSON 并初始化所有数据
+async function loadBeatData(jsonUrl) {
+  try {
+    const resp = await fetch(jsonUrl);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    BPM        = data.bpm || 92;
+    TOTAL      = data.duration || 213;
+    MUSIC_START= data.music_start || 0;
+    BEATS      = data.beats || [];
+    BAR_STARTS = data.bar_starts || [];
+    BIG_EVENTS = mapEvents(data.events || []);
+    DRUM_EVENTS= buildDrumEvents(data.drum_events || {});
+    _dataLoaded = true;
+
+    updateSongBadge(data);
+
+    // 重建事件日志
+    const logList = document.getElementById('log-list');
+    if (logList) {
+      logList.innerHTML = '';
+      LOG_ITEMS = BIG_EVENTS.map((e, i) => {
+        const el = document.createElement('div');
+        el.className = 'log-item';
+        el.id = 'log-real-' + i;
+        el.innerHTML = `<span class="log-time">${e.time.toFixed(1)}s</span><span class="log-icon">${e.icon}</span><span class="log-msg">${e.msg}</span>`;
+        logList.appendChild(el);
+        return { ...e, el, idx: i };
+      });
     }
-  });
-  return events.sort((a,b)=>a.time-b.time);
+
+    // 重新绘制所有轨道（使用真实数据）
+    setTimeout(() => {
+      TRACK_LIST.forEach(t => {
+        WAVES[t] = mkWave(t);
+        drawWaveform(document.getElementById('wf-'+t), t);
+        drawEventMarkers(document.getElementById('ev-'+t), t);
+      });
+      console.log(`✅ 真实数据加载完成: ${data.artist} - ${data.song} (BPM=${BPM}, ${BEATS.length}拍)`);
+    }, 50);
+
+  } catch(err) {
+    console.warn('beats JSON 加载失败（本地直开正常，GitHub Pages 会成功）:', err.message);
+    // 降级：用默认模拟数据
+    _useDefaultData();
+  }
 }
 
-// 大事件（进入点、音效）
-const BIG_EVENTS = [
-  { time: 0.5,             type: 'vinyl',   icon: '💿', msg: '黑胶铺底开始 · 进入状态', color: '#888',   banner: false },
-  { time: MUSIC_START,     type: 'bass',    icon: '🎚️', msg: 'Bass + Kick 同时进来！准备动', color: '#0a84ff', banner: true },
-  { time: MUSIC_START+4,   type: 'snare',   icon: '🥁', msg: 'Snare 进入 → 这就是打 ci 的时机', color: '#ff9f0a', banner: true },
-  { time: MUSIC_START+8,   type: 'vocal',   icon: '🎤', msg: 'Vocal Chop 进入 → 音乐全开了！', color: '#30d158', banner: true },
-  { time: MUSIC_START+18,  type: 'hihat',   icon: '🎩', msg: 'Hi-Hat 密集 → 感受切分细节', color: '#ffd60a', banner: true },
-  { time: MUSIC_START+32,  type: 'bar1',    icon: '🔁', msg: '第 2 段开始 → 新一组 8 拍', color: '#ff6ec7', banner: true },
-  { time: MUSIC_START+64,  type: 'bar1',    icon: '🔁', msg: '第 3 段开始 → Bridge', color: '#ff6ec7', banner: true },
-  { time: MUSIC_START+80,  type: 'sfx',     icon: '✨', msg: '音效突变！情绪最高点', color: '#bf5af2', banner: true },
-  { time: MUSIC_START+96,  type: 'bar1',    icon: '🔁', msg: '第 4 段开始 → Outro', color: '#ff6ec7', banner: true },
-];
-
-// 8拍起始点（每 8 拍打一个 bar1 标记）
-const BAR_STARTS = BEATS.filter((_,i)=>i%8===0);
-
-// 所有事件合并（用于日志显示）
-const DRUM_EVENTS = genDrumEvents();
-const ALL_EVENTS = [
-  ...DRUM_EVENTS,
-  ...BIG_EVENTS,
-  ...BAR_STARTS.map(t=>({time:t,type:'bar_line'})),
-].sort((a,b)=>a.time-b.time);
+function _useDefaultData() {
+  const BI_default = 60/92;
+  BEATS = []; let t = 0.05;
+  while (t < 213) { BEATS.push(+t.toFixed(3)); t += BI_default; }
+  BAR_STARTS = BEATS.filter((_,i)=>i%8===0);
+  DRUM_EVENTS = [];
+  BEATS.forEach((bt, i) => {
+    const pos = i%8;
+    if ([0,2,4,6].includes(pos)) DRUM_EVENTS.push({time:bt,type:'kick'});
+    if ([1,3,5,7].includes(pos)) DRUM_EVENTS.push({time:bt,type:'snare'});
+    DRUM_EVENTS.push({time:+(bt+BI_default/2).toFixed(3),type:'hihat'});
+  });
+  BIG_EVENTS = [
+    {time:0.05, type:'bass',  icon:'🔊', msg:'Bass 进入，准备动！',    color:'#0a84ff', banner:true},
+    {time:14.35,type:'vocal', icon:'🎤', msg:'人声进来了，音乐全开！', color:'#30d158', banner:true},
+    {time:15.02,type:'bar1',  icon:'🔁', msg:'第 2 大段开始',          color:'#ff6ec7', banner:true},
+    {time:30.02,type:'bar1',  icon:'🔁', msg:'第 3 大段开始',          color:'#ff6ec7', banner:true},
+    {time:45.02,type:'bar1',  icon:'🔁', msg:'第 4 大段',              color:'#ff6ec7', banner:true},
+  ];
+  LOG_ITEMS = BIG_EVENTS.map((e,i)=>({...e, el:null, idx:i}));
+}
 
 // ══════════════════════════════════════════════════
 // 波形数据生成（根据各音轨真实特征）
@@ -724,16 +758,8 @@ function showBanner(type) {
   banner.classList.remove('flash'); void banner.offsetWidth; banner.classList.add('flash');
 }
 
-// 初始化事件日志
-const LOG_ITEMS = BIG_EVENTS.map((e, i) => {
-  const el = document.createElement('div');
-  el.className = 'log-item';
-  el.id = 'log-' + i;
-  const timeStr = e.time.toFixed(1) + 's';
-  el.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-icon">${e.icon}</span><span class="log-msg">${e.msg}</span>`;
-  document.getElementById('log-list').appendChild(el);
-  return { ...e, el, idx: i };
-});
+// 初始化事件日志（在 loadBeatData 里动态构建，这里只做占位）
+// LOG_ITEMS 会在 loadBeatData 成功后被填充
 
 function togglePlay() {
   isPlaying ? pause() : play();
@@ -873,12 +899,23 @@ function fmt(s) { return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'
 // 初始化
 // ══════════════════════════════════════════════════
 window.addEventListener('load', () => {
+  // 先用默认数据初始化一次（防止 JSON 加载前页面空白）
+  _useDefaultData();
+  TRACK_LIST.forEach(t => {
+    WAVES[t] = mkWave(t);
+  });
   setTimeout(() => {
     TRACK_LIST.forEach(t => {
       drawWaveform(document.getElementById('wf-'+t), t);
       drawEventMarkers(document.getElementById('ev-'+t), t);
     });
   }, 80);
+
+  // 异步加载真实节拍数据
+  // 从 URL 参数读取歌曲文件名，默认 watercolor
+  const params = new URLSearchParams(location.search);
+  const songFile = params.get('song') || 'watercolor';
+  loadBeatData(`beats/${songFile}.json`);
 });
 window.addEventListener('resize', () => {
   TRACK_LIST.forEach(t => {
