@@ -3,969 +3,1017 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🕺 街舞音乐教学分析器 · Katuchat - Watercolor</title>
+<title>🕺 街舞音乐教学 · Katuchat - Watercolor</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
 :root{
-  --bg:#08080f;
-  --card:rgba(255,255,255,.038);
+  --bg:#06060e;
+  --card:rgba(255,255,255,.04);
   --border:rgba(255,255,255,.07);
-  --txt:#e8e8f0;
-  --dim:#44445a;
+  --txt:#e8e8f2;
+  --dim:#3a3a55;
   --kick:#ff3b30;
   --snare:#ff9f0a;
   --hihat:#ffd60a;
   --vocal:#30d158;
   --bass:#0a84ff;
   --sfx:#bf5af2;
-  --bar1:#ff6ec7;
+  --pink:#ff6ec7;
 }
-body{background:var(--bg);color:var(--txt);font-family:-apple-system,'SF Pro Display',sans-serif;overflow-x:hidden}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  display:flex;flex-direction:column;
+}
 
-/* ── 顶部标题 ── */
-.hd{
-  padding:22px 20px 16px;
+/* ── HEADER ── */
+.hdr{
   display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;
   border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  background:rgba(6,6,14,.9);
+  backdrop-filter:blur(20px);
+  z-index:10;
 }
-.hd-left{display:flex;align-items:center;gap:12px}
-.hd-icon{
-  width:42px;height:42px;border-radius:12px;
+.hdr-left{display:flex;align-items:center;gap:10px}
+.logo{
+  width:34px;height:34px;border-radius:9px;
   background:linear-gradient(135deg,#ff3b30,#bf5af2);
-  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
-  box-shadow:0 0 20px rgba(255,59,48,.4);
-}
-.hd-title{font-size:1.1rem;font-weight:700}
-.hd-sub{font-size:.7rem;color:var(--dim);margin-top:2px}
-.song-badge{
-  background:rgba(255,110,199,.12);border:1px solid rgba(255,110,199,.3);
-  color:#ff6ec7;font-size:.72rem;font-weight:600;
-  padding:5px 14px;border-radius:20px;letter-spacing:.3px;
-}
-
-.app{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
-
-/* ── 顶部指标行 ── */
-.top-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.stat{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:12px 16px;min-width:80px;
-}
-.stat-l{font-size:.62rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
-.stat-v{font-size:1.4rem;font-weight:700;line-height:1}
-.stat-v.red{color:var(--kick)} .stat-v.amber{color:var(--snare)} .stat-v.blue{color:var(--bass)} .stat-v.green{color:var(--vocal)}
-.spd-row{display:flex;gap:5px;margin-top:5px}
-.sp{padding:5px 10px;border-radius:7px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--dim);font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s}
-.sp.on{background:rgba(10,132,255,.18);border-color:var(--bass);color:var(--bass)}
-
-/* ── 大提示横幅 ── */
-#event-banner{
-  height:52px;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  margin-bottom:14px;border-radius:14px;
-  background:rgba(255,255,255,.03);border:1px solid var(--border);
-  font-size:1.1rem;font-weight:700;letter-spacing:.5px;
-  transition:background .15s,border-color .15s,color .15s;
-  position:relative;overflow:hidden;
-}
-#event-banner::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);
-  transform:translateX(-100%);
-}
-#event-banner.flash::before{animation:slide .5s ease-out}
-@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-#event-icon{font-size:1.4rem}
-#event-text{font-size:1rem}
-
-/* ── 8拍行（精简） ── */
-.bar-row{
-  display:flex;align-items:center;gap:8px;margin-bottom:14px;
-  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;
-}
-.bar-label{font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;width:56px;flex-shrink:0}
-.beats{display:flex;gap:6px;flex:1}
-.bx{
-  flex:1;height:34px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  font-size:.9rem;font-weight:800;
-  background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.07);
-  color:rgba(255,255,255,.18);
-  transition:all .07s ease;position:relative;overflow:hidden;
+  font-size:1rem;box-shadow:0 0 16px rgba(255,59,48,.4);
 }
-.bx::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.0)}
-.bx.on{color:#fff;transform:scaleY(1.15)}
-.bx.kick.on{background:rgba(255,59,48,.3);border-color:var(--kick);box-shadow:0 0 12px rgba(255,59,48,.5)}
-.bx.snare.on{background:rgba(255,159,10,.3);border-color:var(--snare);box-shadow:0 0 12px rgba(255,159,10,.5)}
-.bx.hihat.on{background:rgba(255,214,10,.25);border-color:var(--hihat);box-shadow:0 0 10px rgba(255,214,10,.4)}
-.bx.bar-start.on{background:rgba(255,110,199,.28);border-color:var(--bar1);box-shadow:0 0 14px rgba(255,110,199,.55)}
+.title{font-size:.95rem;font-weight:700}
+.sub{font-size:.62rem;color:var(--dim);margin-top:1px}
+.song-info{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,110,199,.08);border:1px solid rgba(255,110,199,.2);
+  border-radius:20px;padding:5px 14px;
+}
+.song-name{font-size:.78rem;font-weight:600;color:var(--pink)}
+.bpm-badge{
+  background:rgba(255,59,48,.12);border:1px solid rgba(255,59,48,.2);
+  color:var(--kick);font-size:.68rem;font-weight:700;
+  padding:2px 8px;border-radius:8px;
+}
 
-.bar-num{font-size:.7rem;color:var(--sfx);font-weight:700;margin-left:4px;width:36px;text-align:right;flex-shrink:0}
+/* ── MAIN ── */
+.main{
+  flex:1;display:grid;
+  grid-template-columns:1fr 340px;
+  grid-template-rows:1fr auto;
+  gap:0;overflow:hidden;
+}
 
-/* ── 图例 ── */
-.legend{
-  display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;
-  background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;
-}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--dim)}
-.leg-dot{width:10px;height:10px;border-radius:50%}
-
-/* ── 多轨道区 ── */
-.tracks{
-  background:var(--card);border:1px solid var(--border);border-radius:16px;
-  overflow:hidden;margin-bottom:14px;
-}
-.track-row{
-  display:flex;align-items:stretch;
-  border-bottom:1px solid rgba(255,255,255,.04);
-}
-.track-row:last-child{border-bottom:none}
-.tk-info{
-  width:88px;flex-shrink:0;padding:0 12px;
-  display:flex;flex-direction:column;justify-content:center;gap:2px;
-  border-right:1px solid rgba(255,255,255,.05);
-}
-.tk-em{font-size:.9rem}
-.tk-nm{font-size:.72rem;font-weight:600}
-.tk-desc{font-size:.58rem;color:var(--dim);line-height:1.3;max-width:64px}
-
-/* 波形+标记画布容器 */
-.wf-area{
-  flex:1;position:relative;
-  height:72px;
+/* ── LEFT PANEL ── */
+.left{
+  display:flex;flex-direction:column;
+  border-right:1px solid var(--border);
   overflow:hidden;
 }
-.wf-area canvas.wf-cv{position:absolute;inset:0;width:100%;height:100%}
-.wf-area canvas.ev-cv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.wf-area .ph{
-  position:absolute;top:0;width:2px;height:100%;
-  background:#fff;box-shadow:0 0 8px rgba(255,255,255,.7),0 0 20px rgba(255,255,255,.3);
-  z-index:10;pointer-events:none;
+
+/* 大频谱区 */
+.spectrum-wrap{
+  flex:1;position:relative;overflow:hidden;
+  background:#04040c;
+}
+#spectrum-cv{width:100%;height:100%;display:block}
+
+/* 教学提示横幅 */
+.cue-banner{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  padding:8px 22px;border-radius:12px;
+  font-size:1rem;font-weight:700;letter-spacing:.3px;
+  pointer-events:none;
+  transition:all .15s;
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.1);
+  color:rgba(255,255,255,.4);
+  white-space:nowrap;
+  backdrop-filter:blur(10px);
+}
+.cue-banner.active{
+  background:rgba(0,0,0,.85);
 }
 
-.tk-ctrl{
-  width:72px;flex-shrink:0;padding:0 10px;
-  display:flex;align-items:center;gap:5px;
-  border-left:1px solid rgba(255,255,255,.05);
+/* 频率分区标注 */
+.freq-labels{
+  position:absolute;bottom:8px;left:0;right:0;
+  display:flex;justify-content:space-around;
+  padding:0 20px;
+  pointer-events:none;
 }
-.cb{
-  width:24px;height:24px;border-radius:6px;
-  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
-  color:var(--dim);font-size:.58rem;font-weight:700;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;
+.freq-lbl{
+  font-size:.58rem;font-weight:600;letter-spacing:.5px;
+  color:rgba(255,255,255,.2);text-transform:uppercase;
 }
-.cb:hover{color:#fff;background:rgba(255,255,255,.12)}
-.cb.M{background:rgba(255,59,48,.2);border-color:var(--kick);color:var(--kick)}
-.cb.S{background:rgba(255,159,10,.2);border-color:var(--snare);color:var(--snare)}
-.vol{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:rgba(255,255,255,.15);cursor:pointer;outline:none}
-.vol::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:#fff;cursor:pointer}
 
-/* ── 进度 ── */
-.prog-wrap{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:10px 14px;margin-bottom:14px;
+/* ── 波形 + 进度区 ── */
+.wf-section{
+  height:80px;background:#030309;
+  border-top:1px solid var(--border);
+  position:relative;flex-shrink:0;
 }
-.trow{display:flex;justify-content:space-between;font-size:.68rem;color:var(--dim);margin-bottom:6px}
-.pb{height:6px;border-radius:3px;background:rgba(255,255,255,.08);cursor:pointer;overflow:hidden;position:relative}
-.pf{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,#ff3b30,#ff9f0a,#0a84ff,#bf5af2);transition:width .1s linear}
+#wf-cv{width:100%;height:100%;display:block;cursor:pointer}
+/* 播放头 */
+.playhead{
+  position:absolute;top:0;bottom:0;width:2px;left:0;
+  background:rgba(255,255,255,.9);
+  box-shadow:0 0 8px #fff,0 0 20px rgba(255,255,255,.4);
+  pointer-events:none;z-index:5;
+}
+.time-row{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:0 10px 4px;pointer-events:none;
+}
+.time-lbl{font-size:.65rem;color:rgba(255,255,255,.25);font-family:monospace}
 
-/* ── 控制 ── */
-.ctrl-row{display:flex;align-items:center;justify-content:center;gap:12px}
+/* ── 控制栏 ── */
+.ctrl-bar{
+  height:52px;background:rgba(4,4,12,.95);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;flex-shrink:0;
+}
+.ctrl-center{display:flex;align-items:center;gap:10px}
+.ctrl-right{display:flex;align-items:center;gap:8px}
 .pbtn{
-  width:58px;height:58px;border-radius:50%;border:none;
-  background:linear-gradient(135deg,#ff3b30,#bf5af2);color:#fff;
-  font-size:1.2rem;cursor:pointer;
+  width:44px;height:44px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,#ff3b30,#bf5af2);
+  color:#fff;font-size:1rem;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 28px rgba(255,59,48,.35),0 0 60px rgba(191,90,242,.2);
+  box-shadow:0 0 20px rgba(255,59,48,.3);
+  transition:all .15s;
+}
+.pbtn:hover{transform:scale(1.06)}
+.pbtn:active{transform:scale(.94)}
+.skip-btn{
+  width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);
+  font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.skip-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.spd-group{display:flex;gap:4px}
+.spd{
+  padding:4px 10px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.35);font-size:.7rem;font-weight:600;cursor:pointer;
+  transition:all .12s;
+}
+.spd.on{background:rgba(10,132,255,.15);border-color:var(--bass);color:var(--bass)}
+.vol-wrap{display:flex;align-items:center;gap:6px;font-size:.65rem;color:var(--dim)}
+.vol{-webkit-appearance:none;width:70px;height:3px;border-radius:2px;
+  background:rgba(255,255,255,.12);cursor:pointer;outline:none}
+.vol::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#fff}
+.cur-time{font-size:.72rem;font-family:monospace;color:rgba(255,255,255,.4);width:40px;text-align:center}
+
+/* ── RIGHT PANEL ── */
+.right{
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:rgba(4,4,12,.6);
+}
+
+/* 8拍 */
+.beat-section{
+  padding:12px 14px 10px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.section-label{
+  font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;
+  margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;
+}
+.bar-counter{font-size:.7rem;color:var(--pink);font-weight:700}
+.beats-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+.bx{
+  aspect-ratio:1;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:800;
+  background:rgba(255,255,255,.04);
+  border:1.5px solid rgba(255,255,255,.06);
+  color:rgba(255,255,255,.15);
+  transition:all .06s ease;
+  position:relative;overflow:hidden;
+}
+.bx::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.15),transparent);
+  opacity:0;transition:opacity .06s;
+}
+.bx.on::before{opacity:1}
+.bx.on{color:#fff;transform:scale(1.08)}
+.bx.kick.on{background:rgba(255,59,48,.35);border-color:var(--kick);box-shadow:0 0 14px rgba(255,59,48,.6)}
+.bx.snare.on{background:rgba(255,159,10,.3);border-color:var(--snare);box-shadow:0 0 12px rgba(255,159,10,.5)}
+.bx.hihat.on{background:rgba(255,214,10,.2);border-color:var(--hihat);box-shadow:0 0 10px rgba(255,214,10,.4)}
+.bx.bar1.on{background:rgba(255,110,199,.28);border-color:var(--pink);box-shadow:0 0 14px rgba(255,110,199,.55)}
+
+/* VU 电平表 */
+.vu-section{
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.vu-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.vu-label{font-size:.62rem;color:var(--dim);width:28px;flex-shrink:0;text-align:right}
+.vu-bar-wrap{flex:1;height:10px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;position:relative}
+.vu-bar{height:100%;border-radius:3px;transition:width .05s linear;width:0}
+.vu-peak{position:absolute;top:0;bottom:0;width:2px;background:#fff;border-radius:1px;transition:left .5s ease-out}
+
+/* 事件日志 */
+.events-section{
+  flex:1;overflow-y:auto;padding:8px 14px 12px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
+}
+.events-section::-webkit-scrollbar{width:3px}
+.events-section::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.ev-title{font-size:.58rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.ev-item{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 8px;border-radius:8px;
+  margin-bottom:3px;
   transition:all .2s;
+  border:1px solid transparent;
+  opacity:.38;
 }
-.pbtn:hover{transform:scale(1.07)}
-.pbtn:active{transform:scale(.95)}
-.aux{
-  width:40px;height:40px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
-  color:#888;font-size:.85rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .15s;
+.ev-item.passed{opacity:.55}
+.ev-item.active{
+  opacity:1;border-color:rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);
 }
-.aux:hover{color:#fff;background:rgba(255,255,255,.12)}
+.ev-time{font-size:.62rem;font-family:monospace;color:var(--dim);width:34px;flex-shrink:0}
+.ev-icon{font-size:.9rem;width:16px;text-align:center}
+.ev-text{font-size:.75rem;line-height:1.3}
+.ev-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-left:auto}
 
-/* ── 底部提示列表 ── */
-.events-log{
-  background:var(--card);border:1px solid var(--border);border-radius:12px;
-  padding:12px 14px;margin-top:14px;max-height:120px;overflow-y:auto;
+/* 图例 */
+.legend{
+  padding:8px 14px;border-top:1px solid var(--border);
+  display:flex;flex-wrap:wrap;gap:8px;
+  flex-shrink:0;
 }
-.log-title{font-size:.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.log-item{
-  display:flex;gap:8px;align-items:center;
-  font-size:.75rem;margin-bottom:4px;padding:4px 8px;border-radius:6px;
-  opacity:.5;transition:opacity .3s,background .3s;
-}
-.log-item.active{opacity:1;background:rgba(255,255,255,.05)}
-.log-time{color:var(--dim);font-size:.65rem;font-family:monospace;width:34px;flex-shrink:0}
-.log-icon{font-size:.85rem;width:18px;text-align:center}
-.log-msg{color:var(--txt)}
+.leg{display:flex;align-items:center;gap:4px;font-size:.6rem;color:rgba(255,255,255,.3)}
+.ldot{width:7px;height:7px;border-radius:50%}
 
-/* ── 背景光晕 ── */
-.bg-glow{
-  position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 50% 40% at 15% 50%,rgba(255,59,48,.06) 0%,transparent 70%),
-    radial-gradient(ellipse 40% 40% at 85% 30%,rgba(191,90,242,.05) 0%,transparent 70%);
+/* 全局背景光晕 */
+.glow{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 50% 50% at 25% 60%,rgba(255,45,85,.04),transparent 70%),
+             radial-gradient(ellipse 40% 40% at 75% 30%,rgba(10,132,255,.04),transparent 70%);
 }
-.app{position:relative;z-index:1}
-header{position:relative;z-index:1}
 </style>
 </head>
 <body>
-<div class="bg-glow"></div>
+<div class="glow"></div>
 
-<header class="hd">
-  <div class="hd-left">
-    <div class="hd-icon">🕺</div>
+<!-- 真实音频（不显示控件） -->
+<audio id="aud" src="songs_audio/watercolor.mp3" preload="auto" crossorigin="anonymous"></audio>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="logo">🕺</div>
     <div>
-      <div class="hd-title">街舞音乐教学分析器</div>
-      <div class="hd-sub">AI 分轨 · 节拍检测 · 事件标注 · 卡点训练</div>
+      <div class="title">街舞音乐教学分析器</div>
+      <div class="sub">实时频谱 · 鼓点标注 · 8拍计数</div>
     </div>
   </div>
-  <div class="song-badge">🎵 Watercolor · Katuchat Style</div>
-</header>
-
-<div class="app">
-
-<!-- 顶部指标 -->
-<div class="top-row">
-  <div class="stat"><div class="stat-l">BPM</div><div class="stat-v red">92</div></div>
-  <div class="stat"><div class="stat-l">调性</div><div class="stat-v amber">F# Minor</div></div>
-  <div class="stat"><div class="stat-l">当前</div><div class="stat-v blue" id="cur">0:00</div></div>
-  <div class="stat"><div class="stat-l">时长</div><div class="stat-v">3:28</div></div>
-  <div class="stat" style="flex:1;min-width:120px">
-    <div class="stat-l">播放速度</div>
-    <div class="spd-row">
-      <div class="sp" onclick="setSpd(.5,this)">½x</div>
-      <div class="sp" onclick="setSpd(.75,this)">¾x</div>
-      <div class="sp on" onclick="setSpd(1,this)">1x</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="song-info">
+      <span class="song-name" id="song-name-badge">Katuchat · Watercolor</span>
     </div>
+    <div class="bpm-badge" id="bpm-badge">— BPM</div>
   </div>
 </div>
 
-<!-- 大提示横幅 -->
-<div id="event-banner">
-  <span id="event-icon">🎯</span>
-  <span id="event-text">点击播放，感受节拍</span>
-</div>
+<!-- MAIN GRID -->
+<div class="main">
 
-<!-- 8拍行 -->
-<div class="bar-row">
-  <div class="bar-label">8 拍</div>
-  <div class="beats" id="beats">
-    <div class="bx" id="bx0">1</div>
-    <div class="bx" id="bx1">2</div>
-    <div class="bx" id="bx2">3</div>
-    <div class="bx" id="bx3">4</div>
-    <div class="bx" id="bx4">5</div>
-    <div class="bx" id="bx5">6</div>
-    <div class="bx" id="bx6">7</div>
-    <div class="bx" id="bx7">8</div>
-  </div>
-  <div class="bar-num">组 <span id="bar-n">—</span></div>
-</div>
+  <!-- LEFT: 频谱 + 波形 -->
+  <div class="left">
+    <!-- 大频谱 -->
+    <div class="spectrum-wrap" id="spec-wrap">
+      <canvas id="spectrum-cv"></canvas>
 
-<!-- 图例 -->
-<div class="legend">
-  <div class="leg-item"><div class="leg-dot" style="background:var(--kick)"></div>Kick 底鼓（踩）</div>
-  <div class="leg-item"><div class="leg-dot" style="background:var(--snare)"></div>Snare 小鼓（打 ci）</div>
-  <div class="leg-item"><div class="leg-dot" style="background:var(--hihat)"></div>Hi-Hat（切分）</div>
-  <div class="leg-item"><div class="leg-dot" style="background:var(--vocal)"></div>Vocal 进入</div>
-  <div class="leg-item"><div class="leg-dot" style="background:var(--bass)"></div>Bass 进入</div>
-  <div class="leg-item"><div class="leg-dot" style="background:var(--sfx)"></div>FX / 音效突变</div>
-  <div class="leg-item"><div class="leg-dot" style="background:var(--bar1)"></div>8拍起始（新一组）</div>
-</div>
+      <!-- 教学提示 -->
+      <div class="cue-banner" id="cue-banner">
+        <span id="cue-icon">🎯</span>
+        <span id="cue-text">点击 ▶ 开始播放</span>
+      </div>
 
-<!-- 多轨道 -->
-<div class="tracks">
+      <!-- 频率分区标注 -->
+      <div class="freq-labels">
+        <span class="freq-lbl" style="color:rgba(255,59,48,.5)">SUB BASS</span>
+        <span class="freq-lbl" style="color:rgba(255,59,48,.5)">BASS / KICK</span>
+        <span class="freq-lbl" style="color:rgba(255,159,10,.5)">LOW MID</span>
+        <span class="freq-lbl" style="color:rgba(255,159,10,.5)">SNARE / VOCAL</span>
+        <span class="freq-lbl" style="color:rgba(255,214,10,.5)">HIGH MID</span>
+        <span class="freq-lbl" style="color:rgba(255,214,10,.5)">HI-HAT / AIR</span>
+      </div>
+    </div>
 
-  <!-- Drums: Kick -->
-  <div class="track-row" id="tr-kick">
-    <div class="tk-info">
-      <div class="tk-em">🥁</div>
-      <div class="tk-nm" style="color:var(--kick)">Kick</div>
-      <div class="tk-desc">底鼓 踩踏感</div>
+    <!-- 实时波形 + 进度 -->
+    <div class="wf-section">
+      <canvas id="wf-cv" onclick="seekByClick(event,this)"></canvas>
+      <div class="playhead" id="playhead"></div>
+      <div class="time-row">
+        <span class="time-lbl" id="t-cur">0:00</span>
+        <span class="time-lbl" id="t-total">3:33</span>
+      </div>
     </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-kick"></canvas>
-      <canvas class="ev-cv" id="ev-kick"></canvas>
-      <div class="ph" id="ph-kick"></div>
-    </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('kick',this)">M</button>
-      <button class="cb" onclick="soloT('kick',this)">S</button>
-      <input type="range" class="vol" value="88">
-    </div>
-  </div>
 
-  <!-- Snare -->
-  <div class="track-row" id="tr-snare">
-    <div class="tk-info">
-      <div class="tk-em">🪘</div>
-      <div class="tk-nm" style="color:var(--snare)">Snare</div>
-      <div class="tk-desc">小鼓 反拍ci</div>
-    </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-snare"></canvas>
-      <canvas class="ev-cv" id="ev-snare"></canvas>
-      <div class="ph" id="ph-snare"></div>
-    </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('snare',this)">M</button>
-      <button class="cb" onclick="soloT('snare',this)">S</button>
-      <input type="range" class="vol" value="80">
-    </div>
-  </div>
+    <!-- 控制栏 -->
+    <div class="ctrl-bar">
+      <span class="cur-time" id="cur-big">0:00</span>
 
-  <!-- Hi-Hat -->
-  <div class="track-row" id="tr-hihat">
-    <div class="tk-info">
-      <div class="tk-em">🎩</div>
-      <div class="tk-nm" style="color:var(--hihat)">Hi-Hat</div>
-      <div class="tk-desc">踩镲 切分节奏</div>
-    </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-hihat"></canvas>
-      <canvas class="ev-cv" id="ev-hihat"></canvas>
-      <div class="ph" id="ph-hihat"></div>
-    </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('hihat',this)">M</button>
-      <button class="cb" onclick="soloT('hihat',this)">S</button>
-      <input type="range" class="vol" value="65">
-    </div>
-  </div>
+      <div class="ctrl-center">
+        <button class="skip-btn" onclick="skipBeats(-8)" title="前8拍">⏮</button>
+        <button class="skip-btn" onclick="skipBeats(-2)" title="前2拍">⏪</button>
+        <button class="pbtn" id="pbtn" onclick="togglePlay()">▶</button>
+        <button class="skip-btn" onclick="skipBeats(2)" title="后2拍">⏩</button>
+        <button class="skip-btn" onclick="skipBeats(8)" title="后8拍">⏭</button>
+      </div>
 
-  <!-- Bass -->
-  <div class="track-row" id="tr-bass">
-    <div class="tk-info">
-      <div class="tk-em">🎚️</div>
-      <div class="tk-nm" style="color:var(--bass)">Bass</div>
-      <div class="tk-desc">低频 进入时机</div>
+      <div class="ctrl-right">
+        <div class="vol-wrap">
+          🔊
+          <input type="range" class="vol" id="vol-ctrl" min="0" max="1" step=".01" value="1"
+            oninput="document.getElementById('aud').volume=this.value">
+        </div>
+        <div class="spd-group">
+          <div class="spd" onclick="setSpd(.5,this)">½x</div>
+          <div class="spd" onclick="setSpd(.75,this)">¾x</div>
+          <div class="spd on" onclick="setSpd(1,this)">1x</div>
+        </div>
+      </div>
     </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-bass"></canvas>
-      <canvas class="ev-cv" id="ev-bass"></canvas>
-      <div class="ph" id="ph-bass"></div>
-    </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('bass',this)">M</button>
-      <button class="cb" onclick="soloT('bass',this)">S</button>
-      <input type="range" class="vol" value="75">
-    </div>
-  </div>
+  </div><!-- /left -->
 
-  <!-- Vocals -->
-  <div class="track-row" id="tr-vocals">
-    <div class="tk-info">
-      <div class="tk-em">🎤</div>
-      <div class="tk-nm" style="color:var(--vocal)">Vocals</div>
-      <div class="tk-desc">人声 chop进入</div>
-    </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-vocals"></canvas>
-      <canvas class="ev-cv" id="ev-vocals"></canvas>
-      <div class="ph" id="ph-vocals"></div>
-    </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('vocals',this)">M</button>
-      <button class="cb" onclick="soloT('vocals',this)">S</button>
-      <input type="range" class="vol" value="72">
-    </div>
-  </div>
+  <!-- RIGHT PANEL -->
+  <div class="right">
 
-  <!-- Guitar/Sample -->
-  <div class="track-row" id="tr-guitar">
-    <div class="tk-info">
-      <div class="tk-em">🎸</div>
-      <div class="tk-nm" style="color:var(--sfx)">Sample</div>
-      <div class="tk-desc">旋律 采样层</div>
+    <!-- 8拍格子 -->
+    <div class="beat-section">
+      <div class="section-label">
+        <span>8 BEAT COUNTER</span>
+        <span class="bar-counter">第 <span id="bar-num">—</span> 组</span>
+      </div>
+      <div class="beats-grid" id="beats-grid">
+        <div class="bx" id="bx0">1</div>
+        <div class="bx" id="bx1">2</div>
+        <div class="bx" id="bx2">3</div>
+        <div class="bx" id="bx3">4</div>
+        <div class="bx" id="bx4">5</div>
+        <div class="bx" id="bx5">6</div>
+        <div class="bx" id="bx6">7</div>
+        <div class="bx" id="bx7">8</div>
+      </div>
     </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-guitar"></canvas>
-      <canvas class="ev-cv" id="ev-guitar"></canvas>
-      <div class="ph" id="ph-guitar"></div>
+
+    <!-- VU 电平表（低/中/高频） -->
+    <div class="vu-section">
+      <div class="section-label">FREQUENCY LEVEL</div>
+      <div class="vu-row">
+        <span class="vu-label" style="color:var(--kick)">SUB</span>
+        <div class="vu-bar-wrap">
+          <div class="vu-bar" id="vu-sub" style="background:linear-gradient(90deg,#ff3b30,#ff6b30)"></div>
+          <div class="vu-peak" id="pk-sub"></div>
+        </div>
+      </div>
+      <div class="vu-row">
+        <span class="vu-label" style="color:var(--kick)">KICK</span>
+        <div class="vu-bar-wrap">
+          <div class="vu-bar" id="vu-kick" style="background:linear-gradient(90deg,#ff3b30,#ff9f0a)"></div>
+          <div class="vu-peak" id="pk-kick"></div>
+        </div>
+      </div>
+      <div class="vu-row">
+        <span class="vu-label" style="color:var(--snare)">MID</span>
+        <div class="vu-bar-wrap">
+          <div class="vu-bar" id="vu-mid" style="background:linear-gradient(90deg,#ff9f0a,#ffd60a)"></div>
+          <div class="vu-peak" id="pk-mid"></div>
+        </div>
+      </div>
+      <div class="vu-row">
+        <span class="vu-label" style="color:var(--vocal)">VOCAL</span>
+        <div class="vu-bar-wrap">
+          <div class="vu-bar" id="vu-vocal" style="background:linear-gradient(90deg,#30d158,#34c759)"></div>
+          <div class="vu-peak" id="pk-vocal"></div>
+        </div>
+      </div>
+      <div class="vu-row">
+        <span class="vu-label" style="color:var(--hihat)">HI</span>
+        <div class="vu-bar-wrap">
+          <div class="vu-bar" id="vu-hi" style="background:linear-gradient(90deg,#ffd60a,#fff)"></div>
+          <div class="vu-peak" id="pk-hi"></div>
+        </div>
+      </div>
     </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('guitar',this)">M</button>
-      <button class="cb" onclick="soloT('guitar',this)">S</button>
-      <input type="range" class="vol" value="60">
+
+    <!-- 事件日志 -->
+    <div class="events-section">
+      <div class="ev-title">教学事件 · TIMELINE</div>
+      <div id="ev-list"></div>
     </div>
-  </div>
 
-  <!-- Vinyl/FX -->
-  <div class="track-row" id="tr-sfx">
-    <div class="tk-info">
-      <div class="tk-em">💿</div>
-      <div class="tk-nm" style="color:#999">Vinyl/FX</div>
-      <div class="tk-desc">黑胶噪声 音效</div>
+    <!-- 图例 -->
+    <div class="legend">
+      <div class="leg"><div class="ldot" style="background:var(--kick)"></div>Kick 底鼓</div>
+      <div class="leg"><div class="ldot" style="background:var(--snare)"></div>Snare 打ci</div>
+      <div class="leg"><div class="ldot" style="background:var(--hihat)"></div>Hi-Hat 踩镲</div>
+      <div class="leg"><div class="ldot" style="background:var(--vocal)"></div>Vocal 人声</div>
+      <div class="leg"><div class="ldot" style="background:var(--sfx)"></div>FX 音效</div>
     </div>
-    <div class="wf-area">
-      <canvas class="wf-cv" id="wf-sfx"></canvas>
-      <canvas class="ev-cv" id="ev-sfx"></canvas>
-      <div class="ph" id="ph-sfx"></div>
-    </div>
-    <div class="tk-ctrl">
-      <button class="cb" onclick="muteT('sfx',this)">M</button>
-      <button class="cb" onclick="soloT('sfx',this)">S</button>
-      <input type="range" class="vol" value="35">
-    </div>
-  </div>
 
-</div><!-- /tracks -->
-
-<!-- 隐藏的真实音频元素 -->
-<audio id="real-audio" preload="auto" crossorigin="anonymous">
-  <source src="songs_audio/watercolor.mp3" type="audio/mpeg">
-</audio>
-
-<!-- 进度条 -->
-<div class="prog-wrap">
-  <div class="trow"><span id="pt">0:00</span><span id="dur-total">3:33</span></div>
-  <div class="pb" onclick="seek(event,this)"><div class="pf" id="pf"></div></div>
-</div>
-
-<!-- 控制 -->
-<div class="ctrl-row">
-  <button class="aux" onclick="skip(-8)" title="后退8拍">⏮</button>
-  <button class="aux" onclick="skip(-4)" title="后退4拍">⏪</button>
-  <button class="pbtn" id="pbtn" onclick="togglePlay()">▶</button>
-  <button class="aux" onclick="skip(4)" title="快进4拍">⏩</button>
-  <button class="aux" onclick="skip(8)" title="快进8拍">⏭</button>
-</div>
-
-<!-- 事件日志 -->
-<div class="events-log">
-  <div class="log-title">教学事件日志 · Event Timeline</div>
-  <div id="log-list"></div>
-</div>
-
-</div><!-- /app -->
+  </div><!-- /right -->
+</div><!-- /main -->
 
 <script>
-// ══════════════════════════════════════════════════
-// 从 beats/watercolor.json 加载真实 librosa 分析数据
-// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// 核心：Web Audio API 实时频谱分析
+// ══════════════════════════════════════════════════════════════
 
-// 默认占位数据（加载 JSON 之前显示）
-let BPM = 92, TOTAL = 213, MUSIC_START = 0.05;
-let BEATS = [], BAR_STARTS = [], DRUM_EVENTS = [], BIG_EVENTS = [], LOG_ITEMS = [];
-let _dataLoaded = false;
+const AUD = document.getElementById('aud');
+let audioCtx, analyser, srcNode, freqData, timeData;
+let FFT = 2048;           // FFT 大小（越大频率分辨率越高）
+let _ctxReady = false;
 
-// 歌曲名显示在 badge
-function updateSongBadge(data) {
-  const badge = document.querySelector('.song-badge');
-  if (badge && data.artist && data.song) {
-    badge.textContent = `🎵 ${data.artist} · ${data.song}`;
-  }
-  const bpmEl = document.querySelector('.stat-v.red');
-  if (bpmEl) bpmEl.textContent = data.bpm;
-  const keyEl = document.querySelector('.stat-v.amber');
-  if (keyEl) keyEl.textContent = data.key || '—';
-  const durEl = document.querySelectorAll('.stat-v')[3];
-  if (durEl) {
-    const d = data.duration||0;
-    durEl.textContent = Math.floor(d/60)+':'+(Math.floor(d%60)+'').padStart(2,'0');
-  }
-}
-
-// 将 beats JSON 事件映射到 BIG_EVENTS 格式
-function mapEvents(jsonEvents) {
-  return jsonEvents.filter(e => e.is_cue !== false).map((e, i) => ({
-    time: e.time,
-    type: e.type,
-    icon: e.icon || '🎵',
-    msg:  e.desc || e.label || '',
-    color: e.color || '#888',
-    banner: e.is_cue === true || e.is_cue === undefined,
-  }));
-}
-
-// 构建 DRUM_EVENTS（从 drum_events JSON 还原为 {time, type} 数组）
-function buildDrumEvents(drumData) {
-  const evs = [];
-  (drumData.kick  || []).forEach(t => evs.push({time:t, type:'kick'}));
-  (drumData.snare || []).forEach(t => evs.push({time:t, type:'snare'}));
-  (drumData.hihat || []).forEach(t => evs.push({time:t, type:'hihat'}));
-  return evs.sort((a,b) => a.time - b.time);
-}
-
-// 加载 JSON 并初始化所有数据
-async function loadBeatData(jsonUrl) {
+function initAudioContext() {
+  if (_ctxReady) return;
   try {
-    const resp = await fetch(jsonUrl);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = FFT;
+    analyser.smoothingTimeConstant = 0.75;  // 平滑系数（0=无平滑，1=完全平滑）
+    analyser.minDecibels = -90;
+    analyser.maxDecibels = -10;
 
-    BPM        = data.bpm || 92;
-    TOTAL      = data.duration || 213;
-    MUSIC_START= data.music_start || 0;
-    BEATS      = data.beats || [];
-    BAR_STARTS = data.bar_starts || [];
-    BIG_EVENTS = mapEvents(data.events || []);
-    DRUM_EVENTS= buildDrumEvents(data.drum_events || {});
-    _dataLoaded = true;
+    srcNode = audioCtx.createMediaElementSource(AUD);
+    srcNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
 
-    updateSongBadge(data);
-
-    // 重建事件日志
-    const logList = document.getElementById('log-list');
-    if (logList) {
-      logList.innerHTML = '';
-      LOG_ITEMS = BIG_EVENTS.map((e, i) => {
-        const el = document.createElement('div');
-        el.className = 'log-item';
-        el.id = 'log-real-' + i;
-        el.innerHTML = `<span class="log-time">${e.time.toFixed(1)}s</span><span class="log-icon">${e.icon}</span><span class="log-msg">${e.msg}</span>`;
-        logList.appendChild(el);
-        return { ...e, el, idx: i };
-      });
-    }
-
-    // 重新绘制所有轨道（使用真实数据）
-    setTimeout(() => {
-      TRACK_LIST.forEach(t => {
-        WAVES[t] = mkWave(t);
-        drawWaveform(document.getElementById('wf-'+t), t);
-        drawEventMarkers(document.getElementById('ev-'+t), t);
-      });
-      console.log(`✅ 真实数据加载完成: ${data.artist} - ${data.song} (BPM=${BPM}, ${BEATS.length}拍)`);
-    }, 50);
-
-  } catch(err) {
-    console.warn('beats JSON 加载失败（本地直开正常，GitHub Pages 会成功）:', err.message);
-    // 降级：用默认模拟数据
-    _useDefaultData();
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+    timeData  = new Uint8Array(analyser.fftSize);
+    _ctxReady = true;
+    console.log('✅ AudioContext 初始化成功，FFT bins:', analyser.frequencyBinCount);
+  } catch(e) {
+    console.error('AudioContext init failed:', e);
   }
 }
 
-function _useDefaultData() {
-  const BI_default = 60/92;
-  BEATS = []; let t = 0.05;
-  while (t < 213) { BEATS.push(+t.toFixed(3)); t += BI_default; }
-  BAR_STARTS = BEATS.filter((_,i)=>i%8===0);
-  DRUM_EVENTS = [];
-  BEATS.forEach((bt, i) => {
-    const pos = i%8;
-    if ([0,2,4,6].includes(pos)) DRUM_EVENTS.push({time:bt,type:'kick'});
-    if ([1,3,5,7].includes(pos)) DRUM_EVENTS.push({time:bt,type:'snare'});
-    DRUM_EVENTS.push({time:+(bt+BI_default/2).toFixed(3),type:'hihat'});
+// ── Canvas 尺寸管理 ──────────────────────────────────────────
+const specCv = document.getElementById('spectrum-cv');
+const wfCv   = document.getElementById('wf-cv');
+let specW, specH, wfW, wfH;
+
+function resizeAll() {
+  const dpr = devicePixelRatio || 1;
+  const wrap = document.getElementById('spec-wrap');
+  specW = wrap.offsetWidth; specH = wrap.offsetHeight;
+  specCv.width  = specW * dpr; specCv.height = specH * dpr;
+  specCv.style.width  = specW + 'px';
+  specCv.style.height = specH + 'px';
+
+  wfW = wfCv.offsetWidth; wfH = wfCv.offsetHeight;
+  wfCv.width  = wfW * dpr; wfCv.height = wfH * dpr;
+  wfCv.style.width  = wfW + 'px';
+  wfCv.style.height = wfH + 'px';
+}
+window.addEventListener('resize', () => { resizeAll(); drawStaticWaveform(); });
+
+// ── 节拍数据（从 JSON 加载） ─────────────────────────────────
+let BEATS = [], BAR_STARTS = [], BIG_EVENTS = [], DRUM_KICK = [], DRUM_SNARE = [], DRUM_HIHAT = [];
+let BPM = 129.2, TOTAL = 213, MUSIC_START = 0.05;
+
+async function loadBeatsJSON() {
+  try {
+    const r = await fetch('beats/watercolor.json');
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    BPM   = d.bpm || 129.2;
+    TOTAL = d.duration || 213;
+    MUSIC_START = d.music_start || 0.05;
+    BEATS      = d.beats || [];
+    BAR_STARTS = d.bar_starts || [];
+    DRUM_KICK  = (d.drum_events || {}).kick  || [];
+    DRUM_SNARE = (d.drum_events || {}).snare || [];
+    DRUM_HIHAT = (d.drum_events || {}).hihat || [];
+
+    // 构建 BIG_EVENTS
+    BIG_EVENTS = (d.events || []).filter(e => e.is_cue !== false).map((e,i) => ({
+      ...e, idx: i, el: null
+    }));
+
+    document.getElementById('bpm-badge').textContent = BPM + ' BPM';
+    if (d.artist && d.song) {
+      document.getElementById('song-name-badge').textContent = `${d.artist} · ${d.song}`;
+    }
+    const durEl = document.getElementById('t-total');
+    if (durEl) durEl.textContent = fmt(TOTAL);
+
+    // 渲染事件日志
+    buildEventLog();
+    // 渲染静态波形
+    drawStaticWaveform();
+    console.log('✅ Beats JSON 加载完成，BPM=', BPM);
+  } catch(e) {
+    console.warn('Beats JSON 加载失败（本地直开正常）:', e.message);
+    buildEventLog(); // 用空数据
+  }
+}
+
+// ── 事件日志 ──────────────────────────────────────────────────
+function buildEventLog() {
+  const list = document.getElementById('ev-list');
+  list.innerHTML = '';
+  BIG_EVENTS.forEach((e, i) => {
+    const el = document.createElement('div');
+    el.className = 'ev-item';
+    el.id = 'ev-' + i;
+    el.innerHTML = `
+      <span class="ev-time">${e.time.toFixed(1)}s</span>
+      <span class="ev-icon">${e.icon || '🎵'}</span>
+      <span class="ev-text">${e.desc || e.label || ''}</span>
+      <div class="ev-dot" style="background:${e.color || '#888'}"></div>
+    `;
+    list.appendChild(el);
+    e.el = el;
   });
-  BIG_EVENTS = [
-    {time:0.05, type:'bass',  icon:'🔊', msg:'Bass 进入，准备动！',    color:'#0a84ff', banner:true},
-    {time:14.35,type:'vocal', icon:'🎤', msg:'人声进来了，音乐全开！', color:'#30d158', banner:true},
-    {time:15.02,type:'bar1',  icon:'🔁', msg:'第 2 大段开始',          color:'#ff6ec7', banner:true},
-    {time:30.02,type:'bar1',  icon:'🔁', msg:'第 3 大段开始',          color:'#ff6ec7', banner:true},
-    {time:45.02,type:'bar1',  icon:'🔁', msg:'第 4 大段',              color:'#ff6ec7', banner:true},
-  ];
-  LOG_ITEMS = BIG_EVENTS.map((e,i)=>({...e, el:null, idx:i}));
 }
 
-// ══════════════════════════════════════════════════
-// 波形数据生成（根据各音轨真实特征）
-// ══════════════════════════════════════════════════
-function mkWave(type, n=3200) {
-  const d = new Float32Array(n), tau = Math.PI*2;
-  for (let i = 0; i < n; i++) {
-    const t = i/n * TOTAL; // 对应真实时间
-    // 音乐开始前静音（只有底噪）
-    const musicFactor = t < MUSIC_START ? 0.05 : 1;
-    switch(type) {
-      case 'kick': {
-        // 每个 Kick 事件处产生波包
-        const nearKick = DRUM_EVENTS.filter(e=>e.type==='kick').some(e=>Math.abs(t-e.time)<0.06);
-        d[i] = nearKick ? (Math.random()*.3+.7)*musicFactor : (Math.random()*.02-.01);
-        break;
-      }
-      case 'snare': {
-        const snareStart = MUSIC_START + 4;
-        const nearSnare = DRUM_EVENTS.filter(e=>e.type==='snare').some(e=>Math.abs(t-e.time)<0.05);
-        d[i] = (t < snareStart) ? 0 : nearSnare ? (Math.random()*.3+.65)*musicFactor : (Math.random()*.02-.01);
-        break;
-      }
-      case 'hihat': {
-        const hhStart = MUSIC_START + 10;
-        const nearHH = DRUM_EVENTS.filter(e=>e.type==='hihat'||e.type==='hihat16').some(e=>Math.abs(t-e.time)<0.03);
-        d[i] = (t < hhStart) ? 0 : nearHH ? (Math.random()*.2+.35)*musicFactor : (Math.random()*.015-.008);
-        break;
-      }
-      case 'bass': {
-        const bassStart = MUSIC_START;
-        const env = t < bassStart ? 0 : (.3 + .25*Math.sin(t*5.8*tau));
-        d[i] = (Math.sin(t*42*tau)*.45 + Math.sin(t*84*tau)*.2) * env;
-        break;
-      }
-      case 'vocals': {
-        const vocalStart = MUSIC_START + 8;
-        // 人声以 4 拍为周期有段落感
-        const gate = t < vocalStart ? 0 : (Math.sin(t*3.8*tau) > 0.1 ? 1 : 0);
-        d[i] = gate * (Math.sin(t*198*tau)*.45 + Math.sin(t*297*tau)*.2 + (Math.random()-.5)*.1);
-        break;
-      }
-      case 'guitar': {
-        const env = t < MUSIC_START ? 0 : (.25+.2*Math.cos(t*2.9*tau));
-        d[i] = (Math.sin(t*105*tau)*.3+Math.sin(t*73.5*tau)*.25+Math.sin(t*147*tau)*.1)*env;
-        break;
-      }
-      case 'sfx': {
-        // 黑胶噪声：全程低强度，音效点突变
-        const crackle = (Math.random()-.5)*.06;
-        const sfxBurst = BIG_EVENTS.filter(e=>e.type==='sfx').some(e=>Math.abs(t-e.time)<1.5);
-        d[i] = crackle + (sfxBurst ? (Math.random()-.5)*.4 : 0);
-        break;
-      }
-    }
+// ── 静态波形（加载时绘制，播放时叠加实时波形） ──────────────
+function drawStaticWaveform() {
+  if (!wfW) return;
+  const dpr = devicePixelRatio || 1;
+  const ctx = wfCv.getContext('2d');
+  const W = wfW * dpr, H = wfH * dpr;
+  ctx.clearRect(0,0,W,H);
+
+  // 背景
+  ctx.fillStyle = '#030309';
+  ctx.fillRect(0,0,W,H);
+
+  if (BEATS.length === 0) return;
+
+  // 用节拍数据画一条"密度图"作为静态背景波形
+  const TOTAL_DUR = TOTAL || 213;
+
+  // 先画一个基础波形
+  ctx.strokeStyle = 'rgba(255,255,255,.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H/2);
+  for (let x = 0; x < W; x++) {
+    const t = (x/W) * TOTAL_DUR;
+    const v = Math.sin(t*40)*.18 + Math.sin(t*73)*.12 + Math.sin(t*17)*.08 + (Math.random()-.5)*.04;
+    ctx.lineTo(x, H/2 + v*H*.4);
   }
-  return d;
-}
+  ctx.stroke();
 
-const TRACK_LIST = ['kick','snare','hihat','bass','vocals','guitar','sfx'];
-const COLORS = {
-  kick:'#ff3b30', snare:'#ff9f0a', hihat:'#ffd60a',
-  bass:'#0a84ff', vocals:'#30d158', guitar:'#bf5af2', sfx:'#888'
-};
-const WAVES = {};
-TRACK_LIST.forEach(t => WAVES[t] = mkWave(t));
+  // 在 Kick 位置画竖线
+  ctx.strokeStyle = 'rgba(255,59,48,.35)';
+  ctx.lineWidth = 1;
+  DRUM_KICK.forEach(t => {
+    const x = (t / TOTAL_DUR) * W;
+    ctx.beginPath(); ctx.moveTo(x, H*.2); ctx.lineTo(x, H*.8); ctx.stroke();
+  });
 
-// ══════════════════════════════════════════════════
-// 绘制函数
-// ══════════════════════════════════════════════════
-function drawWaveform(cvs, type) {
-  const dpr = devicePixelRatio||1;
-  const rect = cvs.getBoundingClientRect();
-  if (!rect.width) return;
-  cvs.width = rect.width*dpr; cvs.height = rect.height*dpr;
-  const ctx = cvs.getContext('2d'); ctx.scale(dpr,dpr);
-  const W = rect.width, H = rect.height;
-  const data = WAVES[type];
-  const step = data.length / W;
-  const col = COLORS[type];
-
-  // 背景渐变
-  const grad = ctx.createLinearGradient(0,0,W,0);
-  grad.addColorStop(0, col+'33');
-  grad.addColorStop(0.5, col+'cc');
-  grad.addColorStop(1, col+'33');
-
-  ctx.shadowColor = col; ctx.shadowBlur = 6;
-  ctx.beginPath(); ctx.moveTo(0, H/2);
-  for (let x=0; x<W; x++) {
-    const v = data[Math.floor(x*step)];
-    ctx.lineTo(x, H/2 - Math.abs(v)*H/2*.85);
-  }
-  for (let x=W-1; x>=0; x--) {
-    const v = data[Math.floor(x*step)];
-    ctx.lineTo(x, H/2 + Math.abs(v)*H/2*.85);
-  }
-  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-  ctx.shadowBlur = 0;
-}
-
-// 绘制事件标记层（在波形上叠加）
-function drawEventMarkers(cvs, type) {
-  const dpr = devicePixelRatio||1;
-  const rect = cvs.getBoundingClientRect();
-  if (!rect.width) return;
-  cvs.width = rect.width*dpr; cvs.height = rect.height*dpr;
-  const ctx = cvs.getContext('2d'); ctx.scale(dpr,dpr);
-  const W = rect.width, H = rect.height;
-
-  // 音乐开始线（前 4 秒静音区标注）
-  const musicStartX = (MUSIC_START / TOTAL) * W;
-  ctx.fillStyle = 'rgba(255,255,255,.04)';
-  ctx.fillRect(0, 0, musicStartX, H);
-  ctx.strokeStyle = 'rgba(255,255,255,.25)';
-  ctx.lineWidth = 1; ctx.setLineDash([3,3]);
-  ctx.beginPath(); ctx.moveTo(musicStartX, 0); ctx.lineTo(musicStartX, H); ctx.stroke();
-  ctx.setLineDash([]);
-  // 标注文字
-  ctx.fillStyle = 'rgba(255,255,255,.3)';
-  ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('铺底', musicStartX/2, H-4);
+  // Snare
+  ctx.strokeStyle = 'rgba(255,159,10,.3)';
+  DRUM_SNARE.forEach(t => {
+    const x = (t / TOTAL_DUR) * W;
+    ctx.beginPath(); ctx.moveTo(x, H*.3); ctx.lineTo(x, H*.7); ctx.stroke();
+  });
 
   // 8拍起始竖线
+  ctx.strokeStyle = 'rgba(255,110,199,.25)'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([2,4]);
   BAR_STARTS.forEach(t => {
-    const x = (t / TOTAL) * W;
-    ctx.strokeStyle = 'rgba(255,110,199,.3)';
-    ctx.lineWidth = 1; ctx.setLineDash([2,4]);
+    const x = (t / TOTAL_DUR) * W;
     ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
-    ctx.setLineDash([]);
   });
+  ctx.setLineDash([]);
 
-  // 各轨道的事件标记竖线
-  const evType = {
-    kick:   { filter: ['kick'],          col: '#ff3b30' },
-    snare:  { filter: ['snare'],         col: '#ff9f0a' },
-    hihat:  { filter: ['hihat','hihat16'], col: '#ffd60a' },
-    bass:   { filter: ['bass'],          col: '#0a84ff' },
-    vocals: { filter: ['vocal'],         col: '#30d158' },
-    guitar: { filter: ['sfx'],           col: '#bf5af2' },
-    sfx:    { filter: ['vinyl','sfx'],   col: '#888' },
-  };
-
-  const spec = evType[type];
-  if (!spec) return;
-
-  // 鼓点：在各事件时间戳处画竖线
-  DRUM_EVENTS.filter(e => spec.filter.includes(e.type)).forEach(e => {
-    const x = (e.time / TOTAL) * W;
-    ctx.strokeStyle = spec.col + 'bb';
-    ctx.lineWidth = e.type === 'hihat16' ? .5 : 1.5;
-    ctx.beginPath(); ctx.moveTo(x, e.type==='hihat16'?H/2:H*.25); ctx.lineTo(x, H*.9); ctx.stroke();
-  });
-
-  // 大事件：画高亮菱形
-  BIG_EVENTS.filter(e => spec.filter.includes(e.type)).forEach(e => {
-    const x = (e.time / TOTAL) * W;
-    ctx.fillStyle = spec.col;
-    ctx.shadowColor = spec.col; ctx.shadowBlur = 8;
+  // 大事件菱形标记
+  BIG_EVENTS.forEach(e => {
+    if (!e.is_cue) return;
+    const x = (e.time / TOTAL_DUR) * W;
+    const col = e.color || '#fff';
+    ctx.fillStyle = col;
+    ctx.shadowColor = col; ctx.shadowBlur = 6;
     ctx.beginPath();
-    ctx.moveTo(x, 4); ctx.lineTo(x+5, H/2); ctx.lineTo(x, H-4); ctx.lineTo(x-5, H/2);
+    ctx.moveTo(x, 3); ctx.lineTo(x+4, H/2); ctx.lineTo(x, H-3); ctx.lineTo(x-4, H/2);
     ctx.closePath(); ctx.fill();
     ctx.shadowBlur = 0;
   });
 }
 
-// ══════════════════════════════════════════════════
-// 播放状态
-// ══════════════════════════════════════════════════
-let isPlaying = false, curTime = 0, spd = 1;
+// ══════════════════════════════════════════════════════════════
+// 实时绘制：频谱 + VU 表
+// ══════════════════════════════════════════════════════════════
+
+// 峰值保持
+const peaks = { sub:0, kick:0, mid:0, vocal:0, hi:0 };
+const peakDecay = 0.015;
+
+// 上一帧的闪光状态
+let kickFlash = 0, snareFlash = 0, hihatFlash = 0;
+
+function drawSpectrum() {
+  const dpr = devicePixelRatio || 1;
+  const ctx = specCv.getContext('2d');
+  const W = specW * dpr, H = specH * dpr;
+
+  ctx.clearRect(0,0,W,H);
+
+  // 背景
+  ctx.fillStyle = '#04040c';
+  ctx.fillRect(0,0,W,H);
+
+  if (!_ctxReady || !analyser) {
+    // 未初始化：画静态占位
+    ctx.fillStyle = 'rgba(255,255,255,.03)';
+    for (let i=0; i<64; i++) {
+      const h = (Math.sin(i*.3+Date.now()*.001)*.3+.5) * H*.15;
+      const x = i*(W/64);
+      ctx.fillRect(x+1, H-h, W/64-2, h);
+    }
+    return;
+  }
+
+  analyser.getByteFrequencyData(freqData);
+  analyser.getByteTimeDomainData(timeData);
+
+  const bins = analyser.frequencyBinCount;  // FFT/2
+  const sampleRate = audioCtx.sampleRate;
+  const binHz = sampleRate / FFT;           // 每个 bin 对应的 Hz
+
+  // ── 频率区段定义（Hz）──
+  const zones = [
+    { name:'sub',   lo:20,    hi:80,   color:'#ff2d55', glow:'rgba(255,45,85,{a})' },
+    { name:'kick',  lo:80,    hi:250,  color:'#ff3b30', glow:'rgba(255,59,48,{a})' },
+    { name:'snare', lo:250,   hi:800,  color:'#ff9f0a', glow:'rgba(255,159,10,{a})' },
+    { name:'low',   lo:800,   hi:2000, color:'#ffd60a', glow:'rgba(255,214,10,{a})' },
+    { name:'mid',   lo:2000,  hi:5000, color:'#34c759', glow:'rgba(52,199,89,{a})' },
+    { name:'hi',    lo:5000,  hi:12000,color:'#30d158', glow:'rgba(48,209,88,{a})' },
+    { name:'air',   lo:12000, hi:20000,color:'#a8d8ea', glow:'rgba(168,216,234,{a})' },
+  ];
+
+  // ── 按区段分组计算平均能量 ──
+  function binRange(loHz, hiHz) {
+    const loB = Math.floor(loHz / binHz);
+    const hiB = Math.min(Math.ceil(hiHz / binHz), bins-1);
+    return { lo: loB, hi: hiB };
+  }
+  function avgEnergy(loHz, hiHz) {
+    const { lo, hi } = binRange(loHz, hiHz);
+    if (hi <= lo) return 0;
+    let sum = 0;
+    for (let i=lo; i<=hi; i++) sum += freqData[i];
+    return sum / ((hi - lo + 1) * 255);
+  }
+
+  // 各区段能量
+  const eSub   = avgEnergy(20, 80);
+  const eKick  = avgEnergy(80, 250);
+  const eSnare = avgEnergy(250, 800);
+  const eMid   = avgEnergy(800, 3000);
+  const eVocal = avgEnergy(3000, 6000);
+  const eHi    = avgEnergy(6000, 16000);
+
+  // Kick/Snare/HiHat 检测（阈值触发闪光）
+  const KICK_THRESH  = 0.55;
+  const SNARE_THRESH = 0.40;
+  const HIHAT_THRESH = 0.30;
+  if (eKick > KICK_THRESH)   kickFlash  = 12;
+  if (eSnare > SNARE_THRESH) snareFlash = 8;
+  if (eHi    > HIHAT_THRESH) hihatFlash = 5;
+  if (kickFlash  > 0) kickFlash--;
+  if (snareFlash > 0) snareFlash--;
+  if (hihatFlash > 0) hihatFlash--;
+
+  // ── 频谱背景闪光（Kick 时整体泛红光） ──
+  if (kickFlash > 0) {
+    const alpha = kickFlash / 12 * 0.12;
+    ctx.fillStyle = `rgba(255,59,48,${alpha})`;
+    ctx.fillRect(0,0,W,H);
+  }
+  if (snareFlash > 0) {
+    const alpha = snareFlash / 8 * 0.08;
+    ctx.fillStyle = `rgba(255,159,10,${alpha})`;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  // ── 绘制频谱柱 ──────────────────────────────────────
+  // 用对数刻度分布柱子（低频柱宽，高频柱窄，更符合听感）
+  const BAR_COUNT = 120;
+  const barW = W / BAR_COUNT - 1.5;
+
+  for (let i = 0; i < BAR_COUNT; i++) {
+    // 对数映射：让低频占更多空间
+    const ratio = i / BAR_COUNT;
+    const freqHz = 20 * Math.pow(20000/20, ratio);  // 20Hz ~ 20kHz 对数
+    const binIdx = Math.min(Math.round(freqHz / binHz), bins-1);
+
+    // 取该 bin 周围几个的最大值（平滑）
+    let maxVal = 0;
+    for (let d=-2; d<=2; d++) {
+      const b = Math.max(0, Math.min(bins-1, binIdx+d));
+      maxVal = Math.max(maxVal, freqData[b]);
+    }
+    const normVal = maxVal / 255;
+    const barH = normVal * H * 0.88;
+
+    const x = i * (W / BAR_COUNT);
+
+    // 颜色：按频率区段着色
+    let colTop, colBot;
+    if (freqHz < 80) {
+      colTop = '#ff2d55'; colBot = '#990011';
+    } else if (freqHz < 250) {
+      colTop = '#ff3b30'; colBot = '#cc1100';
+    } else if (freqHz < 800) {
+      colTop = '#ff9f0a'; colBot = '#cc6600';
+    } else if (freqHz < 2000) {
+      colTop = '#ffd60a'; colBot = '#997700';
+    } else if (freqHz < 6000) {
+      colTop = '#34c759'; colBot = '#1a6e2e';
+    } else if (freqHz < 12000) {
+      colTop = '#30d158'; colBot = '#0e6e2e';
+    } else {
+      colTop = '#a8d8ea'; colBot = '#446677';
+    }
+
+    const grad = ctx.createLinearGradient(0, H - barH, 0, H);
+    grad.addColorStop(0, colTop);
+    grad.addColorStop(1, colBot + '88');
+
+    // 发光效果（能量高时更亮）
+    if (normVal > 0.5) {
+      ctx.shadowColor = colTop;
+      ctx.shadowBlur  = normVal * 18;
+    } else {
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, H - barH, barW, barH, 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 顶部亮点
+    if (barH > 3) {
+      ctx.fillStyle = colTop + 'cc';
+      ctx.fillRect(x, H - barH, barW, 2);
+    }
+  }
+
+  // ── 时域波形叠加（实时波形，叠在频谱上方） ──────────────
+  ctx.save();
+  ctx.globalAlpha = 0.6;
+  const wfGrad = ctx.createLinearGradient(0,0,W,0);
+  wfGrad.addColorStop(0,   'rgba(255,255,255,.0)');
+  wfGrad.addColorStop(0.15,'rgba(255,255,255,.5)');
+  wfGrad.addColorStop(0.85,'rgba(255,255,255,.5)');
+  wfGrad.addColorStop(1,   'rgba(255,255,255,.0)');
+  ctx.strokeStyle = wfGrad;
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = '#fff'; ctx.shadowBlur = 4;
+  ctx.beginPath();
+  const sliceW = W / timeData.length;
+  for (let i=0; i<timeData.length; i++) {
+    const v = (timeData[i]/128 - 1) * 0.35;
+    const x = i * sliceW;
+    const y = H/2 + v * H * 0.4;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // ── VU 电平更新 ──────────────────────────────────────────
+  updateVU('vu-sub',   'pk-sub',   eSub,   'sub');
+  updateVU('vu-kick',  'pk-kick',  eKick,  'kick');
+  updateVU('vu-mid',   'pk-mid',   eSnare, 'mid');
+  updateVU('vu-vocal', 'pk-vocal', eMid,   'vocal');
+  updateVU('vu-hi',    'pk-hi',    eHi,    'hi');
+
+  // ── 8拍计数（用时间戳） ──────────────────────────────────
+  updateBeatGrid();
+}
+
+function updateVU(barId, peakId, val, key) {
+  const bar  = document.getElementById(barId);
+  const peak = document.getElementById(peakId);
+  if (!bar || !peak) return;
+
+  const pct = Math.min(val * 100 * 1.5, 100);  // 放大 1.5x 让电平表更活跃
+  bar.style.width = pct + '%';
+
+  if (pct > peaks[key] * 100) {
+    peaks[key] = pct / 100;
+    peak.style.left = pct + '%';
+  } else {
+    peaks[key] = Math.max(0, peaks[key] - peakDecay);
+    peak.style.left = (peaks[key] * 100) + '%';
+  }
+}
+
+// ── 8拍格子 ──────────────────────────────────────────────────
 let curBeat = -1, curBar = -1;
-let startTs = null, startOff = 0, raf;
-let lastBigEvent = -1;
 
-// ── 真实音频对象 ──────────────────────────────
-const AUDIO = document.getElementById('real-audio');
-let _audioReady = false;
-
-AUDIO.addEventListener('canplaythrough', () => {
-  _audioReady = true;
-  TOTAL = AUDIO.duration;
-  const d = AUDIO.duration;
-  const durEl = document.getElementById('dur-total');
-  if (durEl) durEl.textContent = Math.floor(d/60)+':'+(Math.floor(d%60)+'').padStart(2,'0');
-  console.log('🎵 音频就绪, 时长:', fmt(d));
-});
-AUDIO.addEventListener('ended', () => {
-  isPlaying = false;
-  document.getElementById('pbtn').textContent = '▶';
-  curTime = 0; AUDIO.currentTime = 0;
-  if (raf) cancelAnimationFrame(raf);
-});
-// 兜底：音频加载失败时仍可使用可视化
-AUDIO.addEventListener('error', () => {
-  console.warn('音频加载失败，切换为纯可视化模式');
-});
-
-const BANNERS = {
-  intro:   { icon:'🎵', msg:'铺底中... 等音乐进来', bg:'rgba(255,255,255,.03)', border:'var(--border)', col:'#888' },
-  kick:    { icon:'👊', msg:'Kick 来了！踩住！', bg:'rgba(255,59,48,.12)', border:'var(--kick)', col:'var(--kick)' },
-  snare:   { icon:'🥁', msg:'打 ci！这是 Snare！', bg:'rgba(255,159,10,.12)', border:'var(--snare)', col:'var(--snare)' },
-  hihat:   { icon:'⚡', msg:'切分开始，感受细节', bg:'rgba(255,214,10,.1)', border:'var(--hihat)', col:'var(--hihat)' },
-  vocal:   { icon:'🎤', msg:'人声进了！音乐全开！', bg:'rgba(48,209,88,.12)', border:'var(--vocal)', col:'var(--vocal)' },
-  bass:    { icon:'🔊', msg:'Bass 进来了，准备起动！', bg:'rgba(10,132,255,.12)', border:'var(--bass)', col:'var(--bass)' },
-  bar1:    { icon:'🔁', msg:'新一组 8 拍开始！', bg:'rgba(255,110,199,.12)', border:'var(--bar1)', col:'var(--bar1)' },
-  sfx:     { icon:'✨', msg:'音效突变！情绪最高点！', bg:'rgba(191,90,242,.12)', border:'var(--sfx)', col:'var(--sfx)' },
-  vinyl:   { icon:'💿', msg:'黑胶起，感受氛围', bg:'rgba(255,255,255,.03)', border:'rgba(255,255,255,.12)', col:'#777' },
-  default: { icon:'🎯', msg:'播放中... 感受节拍', bg:'rgba(255,255,255,.03)', border:'var(--border)', col:'#777' },
-};
-
-function showBanner(type) {
-  const b = BANNERS[type] || BANNERS.default;
-  const banner = document.getElementById('event-banner');
-  banner.style.background = b.bg;
-  banner.style.borderColor = b.border;
-  banner.style.color = b.col;
-  document.getElementById('event-icon').textContent = b.icon;
-  document.getElementById('event-text').textContent = b.msg;
-  banner.classList.remove('flash'); void banner.offsetWidth; banner.classList.add('flash');
-}
-
-// 初始化事件日志（在 loadBeatData 里动态构建，这里只做占位）
-// LOG_ITEMS 会在 loadBeatData 成功后被填充
-
-function togglePlay() {
-  isPlaying ? pause() : play();
-}
-function play() {
-  isPlaying = true;
-  document.getElementById('pbtn').textContent = '⏸';
-  showBanner(curTime < MUSIC_START ? 'vinyl' : 'default');
-  if (_audioReady) {
-    AUDIO.playbackRate = spd;
-    AUDIO.play().catch(e => console.warn('audio play failed:', e));
-  }
-  startTs = performance.now(); startOff = curTime;
-  tick();
-}
-function pause() {
-  isPlaying = false;
-  document.getElementById('pbtn').textContent = '▶';
-  if (_audioReady) AUDIO.pause();
-  if (raf) cancelAnimationFrame(raf);
-}
-function tick() {
-  if (!isPlaying) return;
-  // 若音频就绪，以真实 audio.currentTime 为准（避免漂移）
-  if (_audioReady && !AUDIO.paused) {
-    curTime = AUDIO.currentTime;
-  } else {
-    const now = performance.now();
-    curTime = Math.min(startOff + (now - startTs)/1000*spd, TOTAL);
-    if (curTime >= TOTAL) { curTime = 0; startTs = now; startOff = 0; }
-  }
-  render();
-  raf = requestAnimationFrame(tick);
-}
-
-// 当前拍索引
-function getCurrentBeatIdx() {
-  if (curTime < MUSIC_START) return -1;
-  let lo = 0, hi = BEATS.length - 1;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (BEATS[mid] <= curTime) lo = mid + 1; else hi = mid - 1;
-  }
-  return hi;
-}
-
-function render() {
-  const pct = curTime / TOTAL;
-  document.getElementById('pf').style.width = pct*100 + '%';
-  const fs = fmt(curTime);
-  document.getElementById('pt').textContent = fs;
-  document.getElementById('cur').textContent = fs;
-
-  // 播放头
-  TRACK_LIST.forEach(t => {
-    document.getElementById('ph-'+t).style.left = pct*100 + '%';
-  });
-
-  // 8拍 highlight
-  const bi = getCurrentBeatIdx();
-  if (bi >= 0) {
-    const nb = bi % 8;
-    const nbar = Math.floor(bi / 8);
-    if (nb !== curBeat) {
-      if (curBeat >= 0) {
-        const prev = document.getElementById('bx'+curBeat);
-        prev.classList.remove('on','kick','snare','hihat','bar-start');
-      }
-      curBeat = nb;
-      const el = document.getElementById('bx'+curBeat);
-      el.classList.add('on');
-
-      // 给当前拍打上鼓点类型的 class
-      const beatTime = BEATS[bi];
-      const hasKick  = DRUM_EVENTS.some(e=>e.type==='kick'  && Math.abs(e.time-beatTime)<0.05);
-      const hasSnare = DRUM_EVENTS.some(e=>e.type==='snare' && Math.abs(e.time-beatTime)<0.05);
-      const hasHH    = DRUM_EVENTS.some(e=>e.type==='hihat' && Math.abs(e.time-beatTime)<0.05);
-      if (nb === 0) el.classList.add('bar-start');
-      else if (hasKick)  el.classList.add('kick');
-      else if (hasSnare) el.classList.add('snare');
-      else if (hasHH)    el.classList.add('hihat');
-    }
-    if (nbar !== curBar) {
-      curBar = nbar;
-      document.getElementById('bar-n').textContent = curBar + 1;
-    }
-  } else {
-    // 前奏阶段，8拍全暗
+function updateBeatGrid() {
+  const ct = AUD.currentTime;
+  if (BEATS.length === 0 || ct < MUSIC_START) {
     if (curBeat >= 0) {
-      document.getElementById('bx'+curBeat).classList.remove('on','kick','snare','hihat','bar-start');
+      document.getElementById('bx'+curBeat)
+        ?.classList.remove('on','kick','snare','hihat','bar1');
       curBeat = -1;
     }
-    document.getElementById('bar-n').textContent = '—';
+    document.getElementById('bar-num').textContent = '—';
+    return;
   }
 
-  // 大事件触发（Banner + 日志高亮）
-  const triggered = LOG_ITEMS.filter(e => e.banner && e.time <= curTime && e.time > curTime - 0.5);
-  if (triggered.length > 0) {
-    const ev = triggered[triggered.length - 1];
-    if (ev.idx !== lastBigEvent) {
-      lastBigEvent = ev.idx;
-      showBanner(ev.type);
-      // 日志高亮
-      LOG_ITEMS.forEach(e => e.el.classList.remove('active'));
-      ev.el.classList.add('active');
-      ev.el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // 二分查找当前拍
+  let lo=0, hi=BEATS.length-1;
+  while (lo<=hi) {
+    const mid=(lo+hi)>>1;
+    if (BEATS[mid]<=ct) lo=mid+1; else hi=mid-1;
+  }
+  const bi = hi;
+  if (bi < 0) return;
+
+  const nb   = bi % 8;
+  const nbar = Math.floor(bi / 8);
+
+  if (nb !== curBeat) {
+    if (curBeat >= 0) {
+      document.getElementById('bx'+curBeat)
+        ?.classList.remove('on','kick','snare','hihat','bar1');
     }
+    curBeat = nb;
+    const el = document.getElementById('bx'+curBeat);
+    if (!el) return;
+    el.classList.add('on');
+
+    const bt = BEATS[bi];
+    const isKick  = DRUM_KICK.some(t  => Math.abs(t-bt) < 0.08);
+    const isSnare = DRUM_SNARE.some(t => Math.abs(t-bt) < 0.08);
+    const isHH    = DRUM_HIHAT.some(t => Math.abs(t-bt) < 0.08);
+
+    if (nb === 0) el.classList.add('bar1');
+    else if (isKick)  el.classList.add('kick');
+    else if (isSnare) el.classList.add('snare');
+    else if (isHH)    el.classList.add('hihat');
+  }
+
+  if (nbar !== curBar) {
+    curBar = nbar;
+    document.getElementById('bar-num').textContent = curBar + 1;
   }
 }
 
-function skip(s) {
-  // s 单位是「拍数」，换算成秒
-  const beatSec = BEATS.length > 1 ? (BEATS[1]-BEATS[0]) : 60/BPM;
-  const delta = s * beatSec;
-  curTime = Math.max(0, Math.min(TOTAL, curTime + delta));
-  if (_audioReady) AUDIO.currentTime = curTime;
-  if (isPlaying) { startTs = performance.now(); startOff = curTime; }
-  render();
-}
-function seek(e, el) {
-  const r = el.getBoundingClientRect();
-  curTime = Math.max(0, Math.min(1, (e.clientX-r.left)/r.width)) * TOTAL;
-  if (_audioReady) AUDIO.currentTime = curTime;
-  if (isPlaying) { startTs = performance.now(); startOff = curTime; }
-  render();
-}
-function setSpd(s, btn) {
-  spd = s;
-  document.querySelectorAll('.sp').forEach(b => { b.classList.remove('on'); b.style.cssText=''; });
-  btn.classList.add('on');
-  if (_audioReady) AUDIO.playbackRate = s;
-  if (isPlaying) { startTs = performance.now(); startOff = curTime; }
-}
+// ── 教学提示 Banner ──────────────────────────────────────────
+const BANNER_STYLES = {
+  bass:  { bg:'rgba(10,132,255,.18)',  border:'rgba(10,132,255,.5)',  col:'#4fc3f7' },
+  snare: { bg:'rgba(255,159,10,.18)', border:'rgba(255,159,10,.5)', col:'#ff9f0a' },
+  vocal: { bg:'rgba(48,209,88,.18)',  border:'rgba(48,209,88,.5)',  col:'#30d158' },
+  bar1:  { bg:'rgba(255,110,199,.18)',border:'rgba(255,110,199,.5)',col:'#ff6ec7' },
+  sfx:   { bg:'rgba(191,90,242,.18)', border:'rgba(191,90,242,.5)', col:'#bf5af2' },
+  hihat: { bg:'rgba(255,214,10,.14)', border:'rgba(255,214,10,.4)', col:'#ffd60a' },
+  vinyl: { bg:'rgba(255,255,255,.06)',border:'rgba(255,255,255,.2)',col:'#aaa' },
+  dflt:  { bg:'rgba(0,0,0,.5)',       border:'rgba(255,255,255,.1)',col:'rgba(255,255,255,.4)' },
+};
 
-const mutedSet = new Set(), soloSet = new Set();
-function muteT(t, btn) {
-  if (mutedSet.has(t)) { mutedSet.delete(t); btn.classList.remove('M'); document.getElementById('tr-'+t).style.opacity='1'; }
-  else { mutedSet.add(t); btn.classList.add('M'); document.getElementById('tr-'+t).style.opacity='.3'; }
-}
-function soloT(t, btn) {
-  if (soloSet.has(t)) {
-    soloSet.delete(t); btn.classList.remove('S');
-    TRACK_LIST.forEach(k => document.getElementById('tr-'+k).style.opacity='1');
-  } else {
-    soloSet.add(t); btn.classList.add('S');
-    TRACK_LIST.forEach(k => document.getElementById('tr-'+k).style.opacity = k===t?'1':'.2');
-  }
-}
+let lastEvIdx = -1;
 
-function fmt(s) { return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0'); }
+function updateCueBanner() {
+  const ct = AUD.currentTime;
+  let bestEv = null, bestDiff = Infinity;
 
-// ══════════════════════════════════════════════════
-// 初始化
-// ══════════════════════════════════════════════════
-window.addEventListener('load', () => {
-  // 先用默认数据初始化一次（防止 JSON 加载前页面空白）
-  _useDefaultData();
-  TRACK_LIST.forEach(t => {
-    WAVES[t] = mkWave(t);
+  BIG_EVENTS.forEach(e => {
+    const diff = ct - e.time;
+    if (diff >= 0 && diff < 3.5 && diff < bestDiff) {
+      bestDiff = diff; bestEv = e;
+    }
   });
-  setTimeout(() => {
-    TRACK_LIST.forEach(t => {
-      drawWaveform(document.getElementById('wf-'+t), t);
-      drawEventMarkers(document.getElementById('ev-'+t), t);
-    });
-  }, 80);
 
-  // 异步加载真实节拍数据
-  // 从 URL 参数读取歌曲文件名，默认 watercolor
-  const params = new URLSearchParams(location.search);
-  const songFile = params.get('song') || 'watercolor';
-  loadBeatData(`beats/${songFile}.json`);
+  const banner = document.getElementById('cue-banner');
+  if (bestEv) {
+    const s = BANNER_STYLES[bestEv.type] || BANNER_STYLES.dflt;
+    banner.style.background  = s.bg;
+    banner.style.borderColor = s.border;
+    banner.style.color       = s.col;
+    banner.classList.add('active');
+    document.getElementById('cue-icon').textContent = bestEv.icon || '🎵';
+    document.getElementById('cue-text').textContent = bestEv.desc || bestEv.label || '';
+
+    // 日志高亮
+    if (bestEv.idx !== lastEvIdx) {
+      lastEvIdx = bestEv.idx;
+      document.querySelectorAll('.ev-item').forEach(el => {
+        el.classList.remove('active');
+        const t = parseFloat(el.querySelector('.ev-time').textContent);
+        if (t < ct) el.classList.add('passed');
+      });
+      bestEv.el?.classList.add('active');
+      bestEv.el?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+  } else if (!AUD.paused) {
+    const s = BANNER_STYLES.dflt;
+    banner.style.background  = s.bg;
+    banner.style.borderColor = s.border;
+    banner.style.color       = s.col;
+    banner.classList.remove('active');
+    document.getElementById('cue-icon').textContent = '🎯';
+    document.getElementById('cue-text').textContent = ct < MUSIC_START ? '等待音乐进入...' : '感受节拍 · 准备起动';
+  }
+}
+
+// ── 播放头 + 时间 ────────────────────────────────────────────
+function updatePlayhead() {
+  const ct  = AUD.currentTime;
+  const dur = AUD.duration || TOTAL;
+  const pct = dur > 0 ? ct / dur : 0;
+  document.getElementById('playhead').style.left = pct * 100 + '%';
+  const fs = fmt(ct);
+  document.getElementById('t-cur').textContent  = fs;
+  document.getElementById('cur-big').textContent = fs;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 主渲染循环
+// ══════════════════════════════════════════════════════════════
+let raf;
+function loop() {
+  drawSpectrum();
+  updatePlayhead();
+  updateCueBanner();
+  raf = requestAnimationFrame(loop);
+}
+
+// ── 播放控制 ──────────────────────────────────────────────────
+let _playing = false;
+
+function togglePlay() {
+  _playing ? doPause() : doPlay();
+}
+function doPlay() {
+  initAudioContext();  // 首次点击时初始化（浏览器安全策略要求用户交互后）
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  AUD.play().catch(e => console.error('play failed:', e));
+  _playing = true;
+  document.getElementById('pbtn').textContent = '⏸';
+}
+function doPause() {
+  AUD.pause();
+  _playing = false;
+  document.getElementById('pbtn').textContent = '▶';
+}
+
+AUD.addEventListener('ended', () => {
+  _playing = false;
+  document.getElementById('pbtn').textContent = '▶';
 });
-window.addEventListener('resize', () => {
-  TRACK_LIST.forEach(t => {
-    drawWaveform(document.getElementById('wf-'+t), t);
-    drawEventMarkers(document.getElementById('ev-'+t), t);
-  });
+
+function skipBeats(n) {
+  const beatDur = BEATS.length > 1 ? (BEATS[1]-BEATS[0]) : (60/BPM);
+  AUD.currentTime = Math.max(0, Math.min(AUD.duration||TOTAL, AUD.currentTime + n*beatDur));
+}
+
+function seekByClick(e, el) {
+  const r = el.getBoundingClientRect();
+  const dpr = devicePixelRatio || 1;
+  const pct = (e.clientX - r.left) / r.width;
+  AUD.currentTime = pct * (AUD.duration || TOTAL);
+}
+
+function setSpd(s, btn) {
+  AUD.playbackRate = s;
+  document.querySelectorAll('.spd').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function fmt(s) {
+  if (!isFinite(s)) return '0:00';
+  return Math.floor(s/60) + ':' + (Math.floor(s%60)+'').padStart(2,'0');
+}
+
+// ── 初始化 ────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  resizeAll();
+  await loadBeatsJSON();
+  loop();  // 启动渲染循环
+});
+
+// 音频时长加载后更新
+AUD.addEventListener('loadedmetadata', () => {
+  TOTAL = AUD.duration;
+  document.getElementById('t-total').textContent = fmt(AUD.duration);
 });
 </script>
 </body>
