@@ -327,22 +327,9 @@ body{display:flex;flex-direction:column}
   padding:0 8px;pointer-events:none}
 .tlbl{font-size:.54rem;font-family:monospace;color:rgba(255,255,255,.2)}
 
-/* ═══ 事件右侧栏 ═══ */
+/* ═══ 主布局 ═══ */
 .main{flex:1;display:flex;overflow:hidden}
 .daw-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.right-col{width:160px;flex-shrink:0;display:flex;flex-direction:column;
-  border-left:1px solid var(--border);background:rgba(3,3,10,.6);overflow:hidden}
-.right-sec-title{font-size:.46rem;color:var(--dim);text-transform:uppercase;
-  letter-spacing:.7px;padding:6px 8px 3px;border-bottom:1px solid var(--border)}
-.ev-list{flex:1;overflow-y:auto;padding:4px 6px;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
-.ev-list::-webkit-scrollbar{width:2px}
-.ev-item{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:5px;
-  margin-bottom:1px;opacity:.25;transition:all .15s;border:1px solid transparent;cursor:default}
-.ev-item.passed{opacity:.4}
-.ev-item.active{opacity:1;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
-.ev-t{font-size:.5rem;font-family:monospace;color:var(--dim);width:26px;flex-shrink:0}
-.ev-i{font-size:.68rem;width:13px;text-align:center}
 .ev-tx{font-size:.58rem;flex:1;line-height:1.2}
 .ev-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
 
@@ -507,10 +494,6 @@ body{display:flex;flex-direction:column}
       <div class="ph" id="ph"></div>
       <div class="trow"><span class="tlbl" id="tc">0:00</span><span class="tlbl" id="tt">3:33</span></div>
     </div>
-  </div>
-  <div class="right-col">
-    <div class="right-sec-title">教学事件</div>
-    <div class="ev-list" id="evl"></div>
   </div>
 </div>
 
@@ -788,7 +771,7 @@ function showSegmentBanner(icon,text,color){
 // ══════════════════════════════════════════════════════════════
 // MERGE_STEMS: drums 子轨（kick/snare/toms/cymbals）必须独立行，才能看清
 // 只有 bass/vocals/other 的子轨可选择合并
-const MERGE_STEMS = new Set(['bass','vocals','other']); // 注意：drums 移出合并集
+const MERGE_STEMS = new Set(['bass','vocals']); // other 子轨（synth/fx/other）默认展开独立行
 let trackRows=[];
 // 记录每个 stem 是否处于展开状态（默认收起）
 const stemExpanded = {};
@@ -1223,13 +1206,44 @@ function sfxString(vol=0.25){
   osc.start(t); osc.stop(t+0.18);
 }
 
-function sfxSynth(vol=0.2){
+// ── Other 系列：叮咚(synth)、哒哒(fx)、环境铺底(other) ──
+function sfxDingDong(vol=0.22){
+  // 叮咚：两个纯音相差小三度，快攻慢衰（像三角铁 / 钟声）
   const ctx=getSfxCtx(),t=ctx.currentTime;
-  const osc=ctx.createOscillator(),g=ctx.createGain();
-  osc.type='square'; osc.frequency.setValueAtTime(880,t); osc.frequency.exponentialRampToValueAtTime(660,t+0.1);
-  g.gain.setValueAtTime(vol*0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
-  osc.connect(g); g.connect(ctx.destination);
-  osc.start(t); osc.stop(t+0.15);
+  const notes=[523, 659]; // C5, E5
+  notes.forEach((freq,i)=>{
+    const osc=ctx.createOscillator(),g=ctx.createGain();
+    osc.type='sine'; osc.frequency.value=freq;
+    g.gain.setValueAtTime(0,t+i*0.04);
+    g.gain.linearRampToValueAtTime(vol,t+i*0.04+0.005);
+    g.gain.exponentialRampToValueAtTime(0.001,t+i*0.04+0.55);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t+i*0.04); osc.stop(t+i*0.04+0.6);
+  });
+}
+
+function sfxClick(vol=0.28){
+  // 哒哒：短促噪声冲击，带高通（像机械键盘/鼓机 click）
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.025,ctx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*Math.exp(-i/data.length*12);
+  const src=ctx.createBufferSource(),g=ctx.createGain();
+  const hpf=ctx.createBiquadFilter(); hpf.type='bandpass'; hpf.frequency.value=3500; hpf.Q.value=1.5;
+  src.buffer=buf; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+  src.connect(hpf); hpf.connect(g); g.connect(ctx.destination); src.start(t);
+}
+
+function sfxAmbient(vol=0.12){
+  // 环境铺底：短促宽频噪声 + 柔和低通（沙沙声）
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.08,ctx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1);
+  const src=ctx.createBufferSource(),g=ctx.createGain();
+  const lpf=ctx.createBiquadFilter(); lpf.type='lowpass'; lpf.frequency.value=1200;
+  src.buffer=buf; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+  src.connect(lpf); lpf.connect(g); g.connect(ctx.destination); src.start(t);
 }
 
 // 分发音效
@@ -1257,7 +1271,9 @@ function playSFX(trackName, stemName){
     else if(stemName==='vocals')    sfxVocal();
     else if(stemName==='guitar')    sfxString();
     else if(stemName==='piano')     sfxString(0.2);
-    else                            sfxSynth();
+    else if(trackName==='synth')    sfxDingDong();  // 合成器 → 叮咚钟声
+    else if(trackName==='fx')       sfxClick();     // FX/效果 → 哒哒机械声
+    else                            sfxAmbient();   // other → 环境沙沙声
   }catch(e){}
 }
 
@@ -1337,7 +1353,10 @@ function drawStaticWF(){
 // 事件日志 + 轨道气泡触发
 // ══════════════════════════════════════════════════════════════
 function buildLog(){
-  const l=document.getElementById('evl');l.innerHTML='';
+  // right-col 已移除，ev-list 不再渲染
+  const l=document.getElementById('evl');
+  if(!l) return;
+  l.innerHTML='';
   EVENTS.forEach((e,i)=>{
     const el=document.createElement('div');
     el.className='ev-item';el.id='ei'+i;
@@ -1359,9 +1378,10 @@ function updateCue(){
     document.getElementById('csub').textContent=best.desc||'';
     if(best.idx!==lastEv){
       lastEv=best.idx;
+      // ev-item 只在 right-col 存在时才操作
       document.querySelectorAll('.ev-item').forEach(el=>{
         el.classList.remove('active');
-        if(parseFloat(el.querySelector('.ev-t').textContent)<ct)el.classList.add('passed');
+        if(parseFloat(el.querySelector('.ev-t')?.textContent)<ct)el.classList.add('passed');
       });
       best.el?.classList.add('active');
       best.el?.scrollIntoView({behavior:'smooth',block:'nearest'});
