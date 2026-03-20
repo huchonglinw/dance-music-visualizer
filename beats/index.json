@@ -4,11 +4,24 @@
       "file": "watercolor.json",
       "song": "Watercolor",
       "artist": "Katuchat",
+      "icon": "🎨",
       "bpm": 129.2,
       "key": "F Major",
       "duration": 213.75,
-      "music_start": 0.046
+      "music_start": 0.046,
+      "genre_short": "Lo-Fi"
+    },
+    {
+      "file": "one_second.json",
+      "song": "One Second (VORTX Flip)",
+      "artist": "vortxbeat",
+      "icon": "⚡",
+      "bpm": 139.7,
+      "key": "G Major",
+      "duration": 207.88,
+      "music_start": 0.05,
+      "genre_short": "Hip-Hop"
     }
   ],
-  "count": 1
+  "count": 2
 }

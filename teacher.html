@@ -6,84 +6,290 @@
 <title>🕺 街舞音乐教学 · AI 多轨分析</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
-:root{--bg:#05050e;--border:rgba(255,255,255,.07);--dim:#3a3a55;--txt:#e8e8f2}
+:root{--bg:#05050e;--border:rgba(255,255,255,.07);--dim:#555;--txt:#e8e8f2}
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
   font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif}
 body{display:flex;flex-direction:column}
 
-/* ═══ HEADER ═══ */
-.hdr{display:flex;align-items:center;justify-content:space-between;
-  padding:5px 14px;border-bottom:1px solid var(--border);
-  background:rgba(5,5,14,.92);backdrop-filter:blur(20px);flex-shrink:0;z-index:20;height:38px}
-.logo{width:26px;height:26px;border-radius:6px;
+/* ═══ 全屏 HIT 闪光叠层 ═══ */
+.hit-flash{position:fixed;inset:0;z-index:100;pointer-events:none;opacity:0}
+.hit-flash.fire{animation:hitPulse .3s ease-out forwards}
+@keyframes hitPulse{0%{opacity:1}100%{opacity:0}}
+.edge-glow{position:fixed;inset:0;z-index:99;pointer-events:none;opacity:0}
+.edge-glow.fire{animation:edgeFade .45s ease-out forwards}
+@keyframes edgeFade{0%{opacity:1}100%{opacity:0}}
+
+/* ═══ 时间线横幅通知 ═══ */
+.banner-layer{position:absolute;inset:0;pointer-events:none;z-index:10;overflow:hidden}
+.banner{
+  position:absolute;left:130px;right:0;
+  display:flex;align-items:center;gap:8px;
+  padding:0 14px;height:100%;
+  opacity:0;pointer-events:none;
+}
+.banner.show{animation:bannerFly .5s cubic-bezier(.22,1,.36,1) forwards}
+.banner.hide{animation:bannerFade .3s ease-in forwards}
+@keyframes bannerFly{
+  0%{opacity:0;transform:translateX(-40px)}
+  100%{opacity:1;transform:translateX(0)}
+}
+@keyframes bannerFade{
+  0%{opacity:1}100%{opacity:0}
+}
+.banner-icon{font-size:1.1rem;flex-shrink:0}
+.banner-text{font-size:.78rem;font-weight:700;white-space:nowrap}
+.banner-sub{font-size:.55rem;opacity:.65;margin-left:4px;white-space:nowrap}
+
+/* 浮动气泡（重大事件专用） */
+.bubble-layer{position:absolute;left:130px;right:0;top:0;bottom:0;pointer-events:none;z-index:15;overflow:hidden}
+.bubble{
+  position:absolute;
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px 5px 8px;border-radius:20px;
+  font-size:.75rem;font-weight:700;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.15);
+  backdrop-filter:blur(10px);
+  opacity:0;
+}
+.bubble.pop{animation:bubblePop .6s cubic-bezier(.175,.885,.32,1.275) forwards}
+.bubble.fade{animation:bubbleFade .3s ease-in forwards}
+@keyframes bubblePop{
+  0%{opacity:0;transform:translateY(8px) scale(.85)}
+  60%{opacity:1;transform:translateY(-3px) scale(1.04)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes bubbleFade{
+  0%{opacity:1}100%{opacity:0;transform:translateY(-6px)}
+}
+
+/* ═══ 选歌抽屉 ═══ */
+.song-drawer{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(20px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+.song-drawer.open{opacity:1;pointer-events:auto}
+.song-box{
+  width:400px;max-height:70vh;overflow-y:auto;
+  background:rgba(10,10,24,.98);border:1px solid rgba(255,255,255,.1);
+  border-radius:16px;padding:20px;
+  transform:translateY(20px);transition:transform .2s}
+.song-drawer.open .song-box{transform:translateY(0)}
+.song-box-title{font-size:.9rem;font-weight:700;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.song-close{cursor:pointer;font-size:1rem;color:var(--dim);padding:4px 8px;border-radius:6px;
+  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);transition:.1s}
+.song-close:hover{color:#fff;border-color:rgba(255,255,255,.2)}
+.song-item{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;
+  cursor:pointer;border:1px solid transparent;transition:all .12s;margin-bottom:4px}
+.song-item:hover{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+.song-item.active{background:rgba(255,110,199,.08);border-color:rgba(255,110,199,.25)}
+.song-art{width:40px;height:40px;border-radius:8px;
   background:linear-gradient(135deg,#ff3b30,#bf5af2);
-  display:flex;align-items:center;justify-content:center;font-size:.75rem;
-  box-shadow:0 0 10px rgba(255,59,48,.4);margin-right:6px}
-.ttl{font-size:.78rem;font-weight:700}
-.sbt{font-size:.48rem;color:var(--dim)}
-.chips{display:flex;align-items:center;gap:5px}
-.chip{padding:2px 8px;border-radius:10px;font-size:.58rem;font-weight:600;border:1px solid rgba(255,255,255,.12)}
-.chip-s{background:rgba(255,110,199,.08);border-color:rgba(255,110,199,.2);color:#ff6ec7}
-.chip-b{background:rgba(255,59,48,.08);border-color:rgba(255,59,48,.2);color:#ff3b30}
-.chip-k{background:rgba(10,132,255,.08);border-color:rgba(10,132,255,.2);color:#0a84ff}
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.song-info .song-name{font-size:.78rem;font-weight:700}
+.song-info .song-meta{font-size:.58rem;color:var(--dim);margin-top:2px}
+.song-play-btn{margin-left:auto;padding:4px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);font-size:.62rem;font-weight:600;cursor:pointer;color:rgba(255,255,255,.5)}
+.song-item.active .song-play-btn{background:rgba(255,110,199,.12);border-color:#ff6ec7;color:#ff6ec7}
 
-/* ═══ MAIN ═══ */
-.main{flex:1;display:grid;grid-template-columns:1fr 240px;overflow:hidden}
-.left{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+/* ═══ HUD 顶栏 ═══ */
+.hud{
+  display:flex;align-items:stretch;
+  background:rgba(5,5,14,.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);flex-shrink:0;z-index:20;height:74px;
+}
+.hud-info{width:186px;display:flex;flex-direction:column;justify-content:center;
+  padding:0 10px 0 12px;border-right:1px solid var(--border);flex-shrink:0;gap:4px}
+.hud-song-row{display:flex;align-items:center;gap:6px}
+.hud-logo{width:24px;height:24px;border-radius:6px;flex-shrink:0;
+  background:linear-gradient(135deg,#ff3b30,#bf5af2);
+  display:flex;align-items:center;justify-content:center;font-size:.72rem;
+  box-shadow:0 0 10px rgba(255,59,48,.4)}
+.hud-song-name{font-size:.76rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.song-btn{margin-left:auto;padding:2px 7px;border-radius:6px;font-size:.52rem;font-weight:600;
+  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.4);cursor:pointer;transition:.1s;flex-shrink:0}
+.song-btn:hover{color:#fff;border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08)}
+.hud-meta{display:flex;gap:5px}
+.hud-chip{padding:1px 6px;border-radius:7px;font-size:.58rem;font-weight:600;
+  border:1px solid rgba(255,255,255,.1)}
+.hud-chip-b{background:rgba(255,59,48,.08);border-color:rgba(255,59,48,.2);color:#ff3b30}
+.hud-chip-k{background:rgba(10,132,255,.08);border-color:rgba(10,132,255,.2);color:#0a84ff}
+.hud-chip-g{background:rgba(255,110,199,.08);border-color:rgba(255,110,199,.2);color:#ff6ec7}
 
-/* Stem 混音控制条 */
-.mixer{display:flex;align-items:center;gap:2px;padding:4px 8px;
+.hud-center{flex:1;display:flex;align-items:center;justify-content:center;gap:14px;padding:0 16px}
+
+/* 8 BEAT + and 拍 */
+.beat-panel{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.beat-title{font-size:.48rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;
+  display:flex;align-items:center;gap:6px}
+.bar-num{color:#ff6ec7;font-weight:700;font-size:.6rem}
+.bgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.bx{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:.82rem;font-weight:800;background:rgba(255,255,255,.025);
+  border:2px solid rgba(255,255,255,.06);color:rgba(255,255,255,.12);transition:all .06s}
+.bx.on{color:#fff;transform:scale(1.12)}
+.bx.kick.on{background:rgba(255,59,48,.35);border-color:#ff3b30;box-shadow:0 0 14px rgba(255,59,48,.6)}
+.bx.snare.on{background:rgba(255,159,10,.3);border-color:#ff9f0a;box-shadow:0 0 10px rgba(255,159,10,.5)}
+.bx.hihat.on{background:rgba(255,214,10,.2);border-color:#ffd60a;box-shadow:0 0 8px rgba(255,214,10,.4)}
+.bx.bar1.on{background:rgba(255,110,199,.3);border-color:#ff6ec7;box-shadow:0 0 14px rgba(255,110,199,.6)}
+/* and 拍细分行 */
+.and-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:2px}
+.ax{height:10px;border-radius:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;opacity:.5}
+.ax-sub{border-radius:2px;background:rgba(255,255,255,.08);transition:background .04s}
+.ax-sub.on1{background:#ff3b30cc} /* 1 */
+.ax-sub.one{background:#ff9f0aaa} /* e */
+.ax-sub.onaand{background:#30d158aa} /* & */
+.ax-sub.ona{background:#bf5af2aa} /* a */
+.beat-mode-btn{font-size:.46rem;cursor:pointer;color:var(--dim);padding:1px 5px;border-radius:4px;
+  border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);transition:.1s;margin-left:4px}
+.beat-mode-btn:hover{color:#fff;border-color:rgba(255,255,255,.15)}
+.beat-mode-btn.active{color:#ff6ec7;border-color:#ff6ec7;background:rgba(255,110,199,.1)}
+
+/* 教学提示（大字居中） */
+.cue-panel{
+  flex:1;max-width:360px;padding:7px 14px;border-radius:10px;
+  background:rgba(0,0,0,.4);border:1.5px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;gap:10px;transition:all .15s;min-width:0}
+.cue-icon{font-size:1.5rem;flex-shrink:0}
+.cue-text{font-size:.95rem;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cue-sub{font-size:.58rem;color:rgba(255,255,255,.4);margin-top:1px;font-weight:400}
+
+/* 舞种卡 */
+.dance-panel{width:155px;flex-shrink:0;padding:6px 10px;border-radius:8px;
+  background:rgba(255,110,199,.06);border:1px solid rgba(255,110,199,.15);
+  display:flex;flex-direction:column;justify-content:center;gap:2px}
+.dance-style{font-size:.5rem;color:#ff6ec7;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.dance-move-name{font-size:.72rem;font-weight:700;line-height:1.2}
+.dance-move-tip{font-size:.52rem;color:rgba(255,255,255,.45);line-height:1.3}
+
+/* ═══ HIT 指示器条 ═══ */
+.hit-bar{height:4px;display:flex;flex-shrink:0;background:rgba(0,0,0,.6)}
+.hit-seg{flex:1;opacity:0}
+.hit-seg.active{animation:hitSegPulse .35s ease-out forwards}
+@keyframes hitSegPulse{0%{opacity:1}60%{opacity:.7}100%{opacity:0}}
+
+/* ═══ Stem 混音控制条 ═══ */
+.mixer{display:flex;align-items:center;gap:3px;padding:3px 8px;
   border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(5,5,14,.8)}
 .mx-btn{
-  padding:3px 10px;border-radius:5px;font-size:.58rem;font-weight:600;cursor:pointer;
+  padding:2px 8px;border-radius:5px;font-size:.6rem;font-weight:600;cursor:pointer;
   border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
-  color:rgba(255,255,255,.5);transition:all .1s;display:flex;align-items:center;gap:3px}
+  color:rgba(255,255,255,.45);transition:all .1s;display:flex;align-items:center;gap:3px}
 .mx-btn.on{color:#fff}
 .mx-btn .dot{width:6px;height:6px;border-radius:50%}
 .mx-btn.muted{opacity:.3;text-decoration:line-through}
 .mx-btn.solo{border-color:#ffd60a;color:#ffd60a;background:rgba(255,214,10,.1)}
-.mx-label{font-size:.5rem;color:var(--dim);margin-right:4px}
+.mx-label{font-size:.5rem;color:var(--dim);font-weight:600}
 
 /* ═══ 多轨 DAW ═══ */
+.daw-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
 .daw{flex:1;overflow-y:auto;overflow-x:hidden;background:#020208;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
-.daw::-webkit-scrollbar{width:2px}
-.daw::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:1px}
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent;position:relative}
+.daw::-webkit-scrollbar{width:3px}
+.daw::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
 
 /* Stem 分组标题 */
 .stem-hdr{
-  display:flex;align-items:center;gap:6px;padding:3px 8px;
-  background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.05);
-  position:sticky;top:0;z-index:5;
-}
-.stem-hdr-icon{font-size:.7rem}
-.stem-hdr-name{font-size:.56rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+  display:flex;align-items:center;gap:8px;padding:3px 10px;
+  background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);
+  position:sticky;top:0;z-index:5}
+.stem-hdr-icon{font-size:.78rem}
+.stem-hdr-name{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
 
 /* 轨道行 */
-.tr{display:flex;align-items:stretch;height:34px;border-bottom:1px solid rgba(255,255,255,.03);
-  transition:background .08s}
+.tr{display:flex;align-items:stretch;height:40px;border-bottom:1px solid rgba(255,255,255,.03);
+  transition:background .08s;position:relative;overflow:hidden}
 .tr:hover{background:rgba(255,255,255,.015)}
 .tr.flash{background:rgba(255,255,255,.05)}
+.tr.hit-glow{animation:trackHit .35s ease-out}
+@keyframes trackHit{0%{background:rgba(255,255,255,.1)}100%{background:transparent}}
 
-.tr-label{width:90px;flex-shrink:0;display:flex;align-items:center;gap:3px;
-  padding:0 6px;border-right:1px solid rgba(255,255,255,.04);background:rgba(5,5,14,.4)}
-.tr-icon{font-size:.65rem;width:14px;text-align:center}
-.tr-name{font-size:.52rem;font-weight:600;line-height:1}
-.tr-hz{font-size:.42rem;color:rgba(255,255,255,.18);font-family:monospace}
+/* ★ 轨道标签 — 加宽加大，确保可读 */
+.tr-label{width:130px;flex-shrink:0;display:flex;align-items:center;gap:6px;
+  padding:0 8px 0 10px;border-right:1px solid rgba(255,255,255,.05);background:rgba(5,5,14,.6);
+  z-index:3}
+.tr-icon{font-size:.88rem;width:18px;text-align:center;flex-shrink:0}
+.tr-name{font-size:.7rem;font-weight:700;line-height:1.2;white-space:nowrap}
+.tr-hz{font-size:.48rem;color:rgba(255,255,255,.32);font-family:'SF Mono',monospace}
 
 .tr-cv{flex:1;position:relative;overflow:hidden}
 .tr-cv canvas{width:100%;height:100%;display:block}
 
+/* 气泡叠加层（每行独立） */
+.tr-overlay{position:absolute;left:130px;right:0;top:0;bottom:0;pointer-events:none;z-index:8;overflow:hidden}
+.tr-bubble{
+  position:absolute;top:50%;transform:translateY(-50%);
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px 3px 7px;border-radius:14px;
+  font-size:.68rem;font-weight:700;white-space:nowrap;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(5,5,14,.85);backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;left:8px;
+}
+.tr-bubble.pop{animation:trBubblePop .5s cubic-bezier(.175,.885,.32,1.275) forwards}
+.tr-bubble.dismiss{animation:trBubbleDismiss .4s ease-in forwards}
+@keyframes trBubblePop{
+  0%{opacity:0;transform:translateY(calc(-50% + 6px)) scale(.85)}
+  65%{opacity:1;transform:translateY(calc(-50% - 2px)) scale(1.03)}
+  100%{opacity:1;transform:translateY(-50%) scale(1)}
+}
+@keyframes trBubbleDismiss{
+  0%{opacity:1;transform:translateY(-50%)}
+  100%{opacity:0;transform:translateY(calc(-50% - 8px))}
+}
+
+/* 大横幅（段落切换） */
+.segment-banner{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  padding:10px 30px;border-radius:12px;
+  font-size:1.1rem;font-weight:800;
+  border:1.5px solid rgba(255,255,255,.15);
+  background:rgba(5,5,14,.92);backdrop-filter:blur(20px);
+  z-index:50;pointer-events:none;
+  opacity:0;white-space:nowrap;
+}
+.segment-banner.show{animation:segBannerShow .5s ease-out forwards}
+.segment-banner.hide{animation:segBannerHide .4s ease-in forwards}
+@keyframes segBannerShow{
+  0%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.9)}
+  100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+}
+@keyframes segBannerHide{
+  0%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-8px) scale(.96)}
+}
+
 /* ═══ 波形进度 ═══ */
-.wf-row{height:46px;background:#020208;border-top:1px solid var(--border);position:relative;flex-shrink:0}
+.wf-row{height:48px;background:#020208;border-top:1px solid var(--border);position:relative;flex-shrink:0}
 #wf-cv{width:100%;height:100%;display:block;cursor:pointer}
 .ph{position:absolute;top:0;bottom:0;width:2px;left:0;background:rgba(255,255,255,.9);
-  box-shadow:0 0 6px #fff;pointer-events:none;z-index:5}
-.trow{position:absolute;bottom:2px;left:0;right:0;display:flex;justify-content:space-between;
-  padding:0 6px;pointer-events:none}
-.tlbl{font-size:.52rem;font-family:monospace;color:rgba(255,255,255,.18)}
+  box-shadow:0 0 8px #fff;pointer-events:none;z-index:5}
+.trow{position:absolute;bottom:3px;left:0;right:0;display:flex;justify-content:space-between;
+  padding:0 8px;pointer-events:none}
+.tlbl{font-size:.54rem;font-family:monospace;color:rgba(255,255,255,.2)}
 
-/* ═══ 控制栏 ═══ */
+/* ═══ 事件右侧栏 ═══ */
+.main{flex:1;display:flex;overflow:hidden}
+.daw-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.right-col{width:200px;flex-shrink:0;display:flex;flex-direction:column;
+  border-left:1px solid var(--border);background:rgba(3,3,10,.6);overflow:hidden}
+.right-sec-title{font-size:.46rem;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.7px;padding:6px 8px 3px;border-bottom:1px solid var(--border)}
+.ev-list{flex:1;overflow-y:auto;padding:4px 6px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
+.ev-list::-webkit-scrollbar{width:2px}
+.ev-item{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:5px;
+  margin-bottom:1px;opacity:.25;transition:all .15s;border:1px solid transparent;cursor:default}
+.ev-item.passed{opacity:.4}
+.ev-item.active{opacity:1;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+.ev-t{font-size:.5rem;font-family:monospace;color:var(--dim);width:26px;flex-shrink:0}
+.ev-i{font-size:.68rem;width:13px;text-align:center}
+.ev-tx{font-size:.58rem;flex:1;line-height:1.2}
+.ev-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+
+/* ═══ 底部控制栏 ═══ */
 .ctrl{height:42px;background:rgba(3,3,10,.95);border-top:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0}
 .cc{display:flex;align-items:center;gap:5px}
@@ -91,176 +297,196 @@ body{display:flex;flex-direction:column}
 .pbtn{width:34px;height:34px;border-radius:50%;border:none;
   background:linear-gradient(135deg,#ff3b30,#bf5af2);color:#fff;
   font-size:.78rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 14px rgba(255,59,48,.3);transition:all .12s}
-.pbtn:hover{transform:scale(1.06)}.pbtn:active{transform:scale(.93)}
+  box-shadow:0 0 14px rgba(255,59,48,.35);transition:all .12s}
+.pbtn:hover{transform:scale(1.08)}.pbtn:active{transform:scale(.93)}
 .sk{width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.03);color:rgba(255,255,255,.35);
+  background:rgba(255,255,255,.03);color:rgba(255,255,255,.3);
   font-size:.58rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.1s}
 .sk:hover{background:rgba(255,255,255,.08);color:#fff}
 .spds{display:flex;gap:2px}
 .spd{padding:2px 6px;border-radius:4px;border:1px solid rgba(255,255,255,.06);
-  background:rgba(255,255,255,.02);color:rgba(255,255,255,.25);font-size:.56rem;font-weight:600;cursor:pointer}
+  background:rgba(255,255,255,.02);color:rgba(255,255,255,.22);font-size:.55rem;font-weight:600;cursor:pointer}
 .spd.on{background:rgba(10,132,255,.12);border-color:#0a84ff;color:#0a84ff}
 .vol-w{display:flex;align-items:center;gap:3px;font-size:.55rem;color:var(--dim)}
-.vol{-webkit-appearance:none;width:50px;height:2px;border-radius:1px;background:rgba(255,255,255,.08);cursor:pointer;outline:none}
-.vol::-webkit-slider-thumb{-webkit-appearance:none;width:7px;height:7px;border-radius:50%;background:#fff}
+.vol{-webkit-appearance:none;width:52px;height:2px;border-radius:1px;background:rgba(255,255,255,.08);cursor:pointer;outline:none}
+.vol::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;border-radius:50%;background:#fff}
 .ctxt{font-size:.6rem;font-family:monospace;color:rgba(255,255,255,.28);width:32px;text-align:center}
 
-/* ═══ RIGHT ═══ */
-.right{display:flex;flex-direction:column;overflow:hidden;background:rgba(3,3,10,.5)}
-.beat-sec{padding:6px 8px 5px;border-bottom:1px solid var(--border);flex-shrink:0}
-.sec-lbl{font-size:.48rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;
-  margin-bottom:4px;display:flex;justify-content:space-between}
-.barc{font-size:.58rem;color:#ff6ec7;font-weight:700}
-.bgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
-.bx{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;
-  font-size:.65rem;font-weight:800;background:rgba(255,255,255,.025);
-  border:1.5px solid rgba(255,255,255,.05);color:rgba(255,255,255,.1);transition:all .05s}
-.bx.on{color:#fff;transform:scale(1.08)}
-.bx.kick.on{background:rgba(255,59,48,.3);border-color:#ff3b30;box-shadow:0 0 10px rgba(255,59,48,.5)}
-.bx.snare.on{background:rgba(255,159,10,.25);border-color:#ff9f0a;box-shadow:0 0 8px rgba(255,159,10,.4)}
-.bx.hihat.on{background:rgba(255,214,10,.18);border-color:#ffd60a;box-shadow:0 0 7px rgba(255,214,10,.35)}
-.bx.bar1.on{background:rgba(255,110,199,.25);border-color:#ff6ec7;box-shadow:0 0 10px rgba(255,110,199,.5)}
-
-/* 教学提示 */
-.cue-sec{padding:6px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
-.cue-box{padding:6px 10px;border-radius:7px;font-size:.72rem;font-weight:700;
-  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);
-  color:rgba(255,255,255,.3);display:flex;align-items:center;gap:5px;transition:all .15s}
-
-/* 事件日志 */
-.ev-sec{flex:1;overflow-y:auto;padding:5px 7px 7px;
-  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.06) transparent}
-.ev-sec::-webkit-scrollbar{width:2px}
-.ev-sec::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:1px}
-.ev-ttl{font-size:.48rem;color:var(--dim);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px}
-.ev-item{display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:5px;
-  margin-bottom:1px;opacity:.28;transition:all .15s;border:1px solid transparent}
-.ev-item.passed{opacity:.4}
-.ev-item.active{opacity:1;background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
-.ev-t{font-size:.5rem;font-family:monospace;color:var(--dim);width:28px;flex-shrink:0}
-.ev-i{font-size:.7rem;width:13px;text-align:center}
-.ev-tx{font-size:.6rem;flex:1;line-height:1.2}
-.ev-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
-
 .glow{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse 35% 35% at 18% 50%,rgba(255,45,85,.025),transparent),
-    radial-gradient(ellipse 25% 25% at 82% 22%,rgba(10,132,255,.025),transparent)}
+  background:radial-gradient(ellipse 35% 35% at 18% 50%,rgba(255,45,85,.02),transparent),
+    radial-gradient(ellipse 25% 25% at 82% 22%,rgba(10,132,255,.02),transparent)}
 </style>
 </head>
 <body>
 <div class="glow"></div>
+<div class="hit-flash" id="hitFlash"></div>
+<div class="edge-glow" id="edgeGlow"></div>
+<div class="segment-banner" id="segBanner"></div>
 
-<!-- 4个独立 stem 音频 + 原始混音 -->
+<!-- 音频（初始默认 watercolor，换歌后由 JS 更新）-->
 <audio id="aud" src="songs_audio/watercolor.mp3" preload="auto" crossorigin="anonymous"></audio>
-<audio id="aud-drums" src="songs_audio/stems/drums.mp3" preload="auto" crossorigin="anonymous"></audio>
-<audio id="aud-bass" src="songs_audio/stems/bass.mp3" preload="auto" crossorigin="anonymous"></audio>
-<audio id="aud-vocals" src="songs_audio/stems/vocals.mp3" preload="auto" crossorigin="anonymous"></audio>
-<audio id="aud-other" src="songs_audio/stems/other.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-drums" src="songs_audio/stems6/drums.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-bass" src="songs_audio/stems6/bass.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-guitar" src="songs_audio/stems6/guitar.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-piano" src="songs_audio/stems6/piano.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-vocals" src="songs_audio/stems6/vocals.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-other" src="songs_audio/stems6/other.mp3" preload="auto" crossorigin="anonymous"></audio>
 
-<div class="hdr">
-  <div style="display:flex;align-items:center">
-    <div class="logo">🕺</div>
-    <div><div class="ttl">街舞音乐教学 · AI 多轨分析</div><div class="sbt">Demucs AI 分离 · 13轨独立可视化</div></div>
-  </div>
-  <div class="chips">
-    <div class="chip chip-s" id="cs">🎵 Katuchat · Watercolor</div>
-    <div class="chip chip-b" id="cb">— BPM</div>
-    <div class="chip chip-k" id="ck">—</div>
+<!-- 选歌抽屉 -->
+<div class="song-drawer" id="songDrawer" onclick="closeSongDrawer(event)">
+  <div class="song-box">
+    <div class="song-box-title">
+      🎵 选择曲目
+      <span class="song-close" onclick="closeSongDrawer()">✕ 关闭</span>
+    </div>
+    <div id="songList"></div>
   </div>
 </div>
 
-<div class="main">
-<div class="left">
-
-  <!-- Stem 混音控制 -->
-  <div class="mixer" id="mixer">
-    <span class="mx-label">混音台:</span>
-    <div class="mx-btn on" data-stem="drums" onclick="toggleStem(this)">
-      <div class="dot" style="background:#ff3b30"></div>Drums</div>
-    <div class="mx-btn on" data-stem="bass" onclick="toggleStem(this)">
-      <div class="dot" style="background:#0a84ff"></div>Bass</div>
-    <div class="mx-btn on" data-stem="vocals" onclick="toggleStem(this)">
-      <div class="dot" style="background:#30d158"></div>Vocals</div>
-    <div class="mx-btn on" data-stem="other" onclick="toggleStem(this)">
-      <div class="dot" style="background:#bf5af2"></div>Other</div>
-    <span class="mx-label" style="margin-left:6px">Solo:</span>
-    <div class="mx-btn" data-solo="drums" onclick="soloStem(this)">🥁</div>
-    <div class="mx-btn" data-solo="bass" onclick="soloStem(this)">🎸</div>
-    <div class="mx-btn" data-solo="vocals" onclick="soloStem(this)">🎤</div>
-    <div class="mx-btn" data-solo="other" onclick="soloStem(this)">🔔</div>
-  </div>
-
-  <!-- 多轨 DAW -->
-  <div class="daw" id="daw"></div>
-
-  <!-- 波形进度 -->
-  <div class="wf-row">
-    <canvas id="wf-cv" onclick="seekClick(event,this)"></canvas>
-    <div class="ph" id="ph"></div>
-    <div class="trow"><span class="tlbl" id="tc">0:00</span><span class="tlbl" id="tt">3:33</span></div>
-  </div>
-
-  <!-- 控制栏 -->
-  <div class="ctrl">
-    <span class="ctxt" id="ctxt">0:00</span>
-    <div class="cc">
-      <button class="sk" onclick="skipB(-8)">⏮</button>
-      <button class="sk" onclick="skipB(-4)">⏪</button>
-      <button class="pbtn" id="pb" onclick="tp()">▶</button>
-      <button class="sk" onclick="skipB(4)">⏩</button>
-      <button class="sk" onclick="skipB(8)">⏭</button>
+<!-- HUD 顶栏 -->
+<div class="hud">
+  <div class="hud-info">
+    <div class="hud-song-row">
+      <div class="hud-logo">🕺</div>
+      <span class="hud-song-name" id="cs">街舞教学</span>
+      <span class="song-btn" onclick="openSongDrawer()">换歌 ▾</span>
     </div>
-    <div class="cr">
-      <div class="vol-w">🔊<input class="vol" type="range" min="0" max="1" step=".01" value="1" oninput="setVol(+this.value)"></div>
-      <div class="spds">
-        <div class="spd" onclick="ss(.5,this)">½x</div>
-        <div class="spd" onclick="ss(.75,this)">¾x</div>
-        <div class="spd on" onclick="ss(1,this)">1x</div>
+    <div class="hud-meta">
+      <span class="hud-chip hud-chip-b" id="cb">— BPM</span>
+      <span class="hud-chip hud-chip-k" id="ck">—</span>
+      <span class="hud-chip hud-chip-g" id="cgenre">—</span>
+    </div>
+  </div>
+
+  <div class="hud-center">
+    <div class="beat-panel">
+      <div class="beat-title">8 BEAT
+        <span class="bar-num">第<span id="bnum">—</span>组</span>
+        <span class="beat-mode-btn" id="andModeBtn" onclick="toggleAndMode()">1e&a</span>
+      </div>
+      <div class="bgrid">
+        <div class="bx" id="bx0">1</div><div class="bx" id="bx1">2</div>
+        <div class="bx" id="bx2">3</div><div class="bx" id="bx3">4</div>
+        <div class="bx" id="bx4">5</div><div class="bx" id="bx5">6</div>
+        <div class="bx" id="bx6">7</div><div class="bx" id="bx7">8</div>
+      </div>
+      <!-- and 拍细分行（默认隐藏，开启后显示） -->
+      <div class="and-grid" id="andGrid" style="display:none">
+        <div class="ax" id="ax0"><div class="ax-sub" id="ax0-0">1</div><div class="ax-sub" id="ax0-1">e</div><div class="ax-sub" id="ax0-2">&</div><div class="ax-sub" id="ax0-3">a</div></div>
+        <div class="ax" id="ax1"><div class="ax-sub" id="ax1-0">1</div><div class="ax-sub" id="ax1-1">e</div><div class="ax-sub" id="ax1-2">&</div><div class="ax-sub" id="ax1-3">a</div></div>
+        <div class="ax" id="ax2"><div class="ax-sub" id="ax2-0">1</div><div class="ax-sub" id="ax2-1">e</div><div class="ax-sub" id="ax2-2">&</div><div class="ax-sub" id="ax2-3">a</div></div>
+        <div class="ax" id="ax3"><div class="ax-sub" id="ax3-0">1</div><div class="ax-sub" id="ax3-1">e</div><div class="ax-sub" id="ax3-2">&</div><div class="ax-sub" id="ax3-3">a</div></div>
+        <div class="ax" id="ax4"><div class="ax-sub" id="ax4-0">1</div><div class="ax-sub" id="ax4-1">e</div><div class="ax-sub" id="ax4-2">&</div><div class="ax-sub" id="ax4-3">a</div></div>
+        <div class="ax" id="ax5"><div class="ax-sub" id="ax5-0">1</div><div class="ax-sub" id="ax5-1">e</div><div class="ax-sub" id="ax5-2">&</div><div class="ax-sub" id="ax5-3">a</div></div>
+        <div class="ax" id="ax6"><div class="ax-sub" id="ax6-0">1</div><div class="ax-sub" id="ax6-1">e</div><div class="ax-sub" id="ax6-2">&</div><div class="ax-sub" id="ax6-3">a</div></div>
+        <div class="ax" id="ax7"><div class="ax-sub" id="ax7-0">1</div><div class="ax-sub" id="ax7-1">e</div><div class="ax-sub" id="ax7-2">&</div><div class="ax-sub" id="ax7-3">a</div></div>
       </div>
     </div>
+
+    <div class="cue-panel" id="cue">
+      <span class="cue-icon" id="ci">🎯</span>
+      <div style="min-width:0">
+        <div class="cue-text" id="ct">点击 ▶ 开始</div>
+        <div class="cue-sub" id="csub"></div>
+      </div>
+    </div>
+
+    <div class="dance-panel" id="dancePanel">
+      <div class="dance-style" id="danceStyle">💃 舞步建议</div>
+      <div class="dance-move-name" id="danceMoveName">—</div>
+      <div class="dance-move-tip" id="danceMoveTip">播放后显示</div>
+    </div>
   </div>
 </div>
 
-<!-- RIGHT -->
-<div class="right">
-  <div class="beat-sec">
-    <div class="sec-lbl">8 BEAT <span class="barc">第<span id="bnum">—</span>组</span></div>
-    <div class="bgrid">
-      <div class="bx" id="bx0">1</div><div class="bx" id="bx1">2</div>
-      <div class="bx" id="bx2">3</div><div class="bx" id="bx3">4</div>
-      <div class="bx" id="bx4">5</div><div class="bx" id="bx5">6</div>
-      <div class="bx" id="bx6">7</div><div class="bx" id="bx7">8</div>
+<!-- HIT 指示器条（14轨）-->
+<div class="hit-bar" id="hitBar">
+  <div class="hit-seg" id="hs-kick" style="background:#ff3b30"></div>
+  <div class="hit-seg" id="hs-snare" style="background:#ff9f0a"></div>
+  <div class="hit-seg" id="hs-toms" style="background:#ffcc00"></div>
+  <div class="hit-seg" id="hs-cymbals" style="background:#ffd60a"></div>
+  <div class="hit-seg" id="hs-vocal_lo" style="background:#1ed760"></div>
+  <div class="hit-seg" id="hs-vocal_mid" style="background:#30d158"></div>
+  <div class="hit-seg" id="hs-vocal_hi" style="background:#5ade83"></div>
+  <div class="hit-seg" id="hs-bass_sub" style="background:#0040ff"></div>
+  <div class="hit-seg" id="hs-bass_mid" style="background:#0a84ff"></div>
+  <div class="hit-seg" id="hs-guitar" style="background:#ff6b35"></div>
+  <div class="hit-seg" id="hs-piano" style="background:#bf5af2"></div>
+  <div class="hit-seg" id="hs-synth" style="background:#a78bfa"></div>
+  <div class="hit-seg" id="hs-fx" style="background:#ff6ec7"></div>
+  <div class="hit-seg" id="hs-other" style="background:#c084fc"></div>
+</div>
+
+<!-- Stem 混音控制 -->
+<div class="mixer">
+  <span class="mx-label">Mute:</span>
+  <div class="mx-btn on" data-stem="drums" onclick="toggleStem(this)"><div class="dot" style="background:#ff3b30"></div>Drums</div>
+  <div class="mx-btn on" data-stem="bass" onclick="toggleStem(this)"><div class="dot" style="background:#0a84ff"></div>Bass</div>
+  <div class="mx-btn on" data-stem="guitar" onclick="toggleStem(this)"><div class="dot" style="background:#ff6b35"></div>Guitar</div>
+  <div class="mx-btn on" data-stem="piano" onclick="toggleStem(this)"><div class="dot" style="background:#bf5af2"></div>Piano</div>
+  <div class="mx-btn on" data-stem="vocals" onclick="toggleStem(this)"><div class="dot" style="background:#30d158"></div>Vocals</div>
+  <div class="mx-btn on" data-stem="other" onclick="toggleStem(this)"><div class="dot" style="background:#ff6ec7"></div>Other</div>
+  <span class="mx-label" style="margin-left:8px">Solo:</span>
+  <div class="mx-btn" data-solo="drums" onclick="soloStem(this)">🥁</div>
+  <div class="mx-btn" data-solo="bass" onclick="soloStem(this)">🎸B</div>
+  <div class="mx-btn" data-solo="guitar" onclick="soloStem(this)">🎸G</div>
+  <div class="mx-btn" data-solo="piano" onclick="soloStem(this)">🎹</div>
+  <div class="mx-btn" data-solo="vocals" onclick="soloStem(this)">🎤</div>
+  <div class="mx-btn" data-solo="other" onclick="soloStem(this)">💫</div>
+</div>
+
+<!-- 主体：DAW + 右侧事件列表 -->
+<div class="main">
+  <div class="daw-col">
+    <div class="daw" id="daw"></div>
+    <div class="wf-row">
+      <canvas id="wf-cv" onclick="seekClick(event,this)"></canvas>
+      <div class="ph" id="ph"></div>
+      <div class="trow"><span class="tlbl" id="tc">0:00</span><span class="tlbl" id="tt">3:33</span></div>
     </div>
   </div>
-  <div class="cue-sec">
-    <div class="cue-box" id="cue"><span id="ci">🎯</span><span id="ct">点击 ▶ 开始</span></div>
-  </div>
-  <div class="ev-sec">
-    <div class="ev-ttl">教学事件</div>
-    <div id="evl"></div>
+  <div class="right-col">
+    <div class="right-sec-title">教学事件</div>
+    <div class="ev-list" id="evl"></div>
   </div>
 </div>
+
+<!-- 底部控制栏 -->
+<div class="ctrl">
+  <span class="ctxt" id="ctxt">0:00</span>
+  <div class="cc">
+    <button class="sk" onclick="skipB(-8)">⏮</button>
+    <button class="sk" onclick="skipB(-4)">⏪</button>
+    <button class="pbtn" id="pb" onclick="tp()">▶</button>
+    <button class="sk" onclick="skipB(4)">⏩</button>
+    <button class="sk" onclick="skipB(8)">⏭</button>
+  </div>
+  <div class="cr">
+    <div class="vol-w">🔊<input class="vol" type="range" min="0" max="1" step=".01" value="1" oninput="setVol(+this.value)"></div>
+    <div class="spds">
+      <div class="spd" onclick="ss(.5,this)">½x</div>
+      <div class="spd" onclick="ss(.75,this)">¾x</div>
+      <div class="spd on" onclick="ss(1,this)">1x</div>
+    </div>
+  </div>
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// Audio: 原始混音 + 4个 stem
+// Audio
 // ══════════════════════════════════════════════════════════════
 const AUD = document.getElementById('aud');
 const STEM_AUDS = {
   drums:  document.getElementById('aud-drums'),
   bass:   document.getElementById('aud-bass'),
+  guitar: document.getElementById('aud-guitar'),
+  piano:  document.getElementById('aud-piano'),
   vocals: document.getElementById('aud-vocals'),
   other:  document.getElementById('aud-other'),
 };
-// Stem 静音状态
-const stemMuted = { drums:false, bass:false, vocals:false, other:false };
-let soloActive = null;
-
-// Web Audio
-let actx, mainAnalyser, stemAnalysers={}, stemSrcs={}, mainSrc;
-let freqData, timeData;
+const stemMuted = {drums:false,bass:false,guitar:false,piano:false,vocals:false,other:false};
+let soloActive=null;
+let actx,stemAnalysers={},stemSrcs={};
 const FFT=4096;
 let _ready=false;
 const DPR=devicePixelRatio||1;
@@ -269,179 +495,330 @@ function initAudio(){
   if(_ready)return;
   try{
     actx=new(window.AudioContext||window.webkitAudioContext)();
-
-    // 原始混音（静音，只用于同步时间）
-    AUD.volume=0;
-    AUD.muted=true;
-
-    // 每个 stem 独立 analyser
-    ['drums','bass','vocals','other'].forEach(name=>{
+    AUD.volume=0;AUD.muted=true;
+    ['drums','bass','guitar','piano','vocals','other'].forEach(n=>{
       const a=actx.createAnalyser();
-      a.fftSize=FFT; a.smoothingTimeConstant=0.72; a.minDecibels=-95; a.maxDecibels=-5;
-      const s=actx.createMediaElementSource(STEM_AUDS[name]);
-      s.connect(a); a.connect(actx.destination);
-      stemAnalysers[name]=a;
-      stemSrcs[name]=s;
+      a.fftSize=FFT;a.smoothingTimeConstant=0.72;a.minDecibels=-95;a.maxDecibels=-5;
+      const s=actx.createMediaElementSource(STEM_AUDS[n]);
+      s.connect(a);a.connect(actx.destination);
+      stemAnalysers[n]=a;stemSrcs[n]=s;
     });
-
-    // 主 analyser（用 drums 的数据做频谱显示）
-    mainAnalyser=stemAnalysers.drums;
-    freqData=new Uint8Array(mainAnalyser.frequencyBinCount);
-    timeData=new Uint8Array(FFT);
     _ready=true;
-  }catch(e){console.error(e)}
+  }catch(e){console.warn('AudioCtx:',e)}
 }
 
 // ══════════════════════════════════════════════════════════════
 // 数据
 // ══════════════════════════════════════════════════════════════
-let BEATS=[],BAR_STARTS=[],EVENTS=[],KICK=[],SNARE=[],HIHAT=[];
-let TRACKS_CFG=[],STEMS={};
+let BEATS=[],BAR_STARTS=[],EVENTS=[],TRACKS_CFG=[],STEMS={};
 let BPM=129.2,TOTAL=213,MSTART=0.05;
+let GENRE_INFO=null,DANCE_MOVES=[];
+let ALL_SONGS=[];
+let CUR_SONG_IDX=0;
 
-async function loadJSON(){
+const STEM_COLORS={drums:'#ff3b30',bass:'#0a84ff',vocals:'#30d158',other:'#ff6ec7',guitar:'#ff6b35',piano:'#bf5af2'};
+const STEM_ICONS={drums:'🥁',bass:'🎸',vocals:'🎤',other:'💫',guitar:'🎸',piano:'🎹'};
+const STEM_NAMES={drums:'DRUMS 鼓组',bass:'BASS 贝斯',vocals:'VOCALS 人声',other:'OTHER 其他',guitar:'GUITAR 吉他',piano:'PIANO 钢琴'};
+
+// ══════════════════════════════════════════════════════════════
+// 加载 JSON
+// ══════════════════════════════════════════════════════════════
+async function loadSongList(){
   try{
-    const d=await(await fetch('beats/watercolor.json')).json();
-    BPM=d.bpm||129.2; TOTAL=d.duration||213; MSTART=d.music_start||0.05;
-    BEATS=d.beats||[]; BAR_STARTS=d.bar_starts||[];
-    KICK=(d.drum_events||{}).kick||[];
-    SNARE=(d.drum_events||{}).snare||[];
-    HIHAT=(d.drum_events||{}).hihat||[];
+    const d=await(await fetch('beats/index.json')).json();
+    ALL_SONGS=d.songs||[];
+    buildSongList();
+  }catch(e){ALL_SONGS=[{file:'watercolor.json',song:'Watercolor',artist:'Katuchat'}];}
+}
+
+async function loadSong(idx){
+  CUR_SONG_IDX=idx;
+  const meta=ALL_SONGS[idx];
+  if(!meta)return;
+  try{
+    const d=await(await fetch('beats/'+meta.file)).json();
+    BPM=d.bpm||129.2;TOTAL=d.duration||213;MSTART=d.music_start||0.05;
+    BEATS=d.beats||[];BAR_STARTS=d.bar_starts||[];
     EVENTS=(d.events||[]).filter(e=>e.is_cue!==false).map((e,i)=>({...e,idx:i,el:null}));
-    TRACKS_CFG=d.tracks_config||[];
-    STEMS=d.stems||{};
+    TRACKS_CFG=d.tracks_config||[];STEMS=d.stems||{};
+    GENRE_INFO=d.genre||null;
+
     document.getElementById('cb').textContent=BPM+' BPM';
     document.getElementById('ck').textContent=d.key||'—';
-    if(d.artist)document.getElementById('cs').textContent=`🎵 ${d.artist} · ${d.song}`;
+    const artist=d.artist||meta.artist||'';
+    const song=d.song||meta.song||'';
+    document.getElementById('cs').textContent=`${artist} · ${song}`;
     document.getElementById('tt').textContent=fmt(TOTAL);
-    buildDAW();
-    buildLog();
-    drawStaticWF();
-  }catch(e){console.warn('JSON:',e.message);buildLog();}
+
+    // 更新曲风 chip
+    if(GENRE_INFO){
+      document.getElementById('cgenre').textContent=GENRE_INFO.short||GENRE_INFO.name||'—';
+    }
+
+    // 更新音频 src
+    if(d.audio_files){
+      AUD.src=d.audio_files.main||'';
+      Object.keys(STEM_AUDS).forEach(k=>{
+        if(d.audio_files[k])STEM_AUDS[k].src=d.audio_files[k];
+      });
+      Object.values(STEM_AUDS).forEach(a=>a.load());
+    }
+
+    buildDAW();buildLog();drawStaticWF();
+    buildDanceMoves();
+    updateSongListActive();
+  }catch(e){console.warn('loadSong:',e);}
+}
+
+async function loadJSON(){
+  await loadSongList();
+  await loadSong(0);
 }
 
 // ══════════════════════════════════════════════════════════════
-// 多轨 DAW
+// 选歌 UI
+// ══════════════════════════════════════════════════════════════
+function buildSongList(){
+  const el=document.getElementById('songList');
+  el.innerHTML='';
+  ALL_SONGS.forEach((s,i)=>{
+    const item=document.createElement('div');
+    item.className='song-item'+(i===CUR_SONG_IDX?' active':'');
+    item.id='si-'+i;
+    item.innerHTML=`
+      <div class="song-art">${s.icon||'🎵'}</div>
+      <div class="song-info">
+        <div class="song-name">${s.song||s.file}</div>
+        <div class="song-meta">${s.artist||''} · ${s.bpm?s.bpm+' BPM':''} ${s.genre_short?'· '+s.genre_short:''}</div>
+      </div>
+      <span class="song-play-btn" onclick="selectSong(${i})">${i===CUR_SONG_IDX?'▶ 播放中':'选择'}</span>`;
+    el.appendChild(item);
+  });
+}
+
+function updateSongListActive(){
+  document.querySelectorAll('.song-item').forEach((el,i)=>{
+    el.classList.toggle('active',i===CUR_SONG_IDX);
+    const btn=el.querySelector('.song-play-btn');
+    if(btn)btn.textContent=i===CUR_SONG_IDX?'▶ 播放中':'选择';
+  });
+}
+
+function selectSong(i){
+  pa();
+  loadSong(i).then(()=>{closeSongDrawer();});
+}
+
+function openSongDrawer(){document.getElementById('songDrawer').classList.add('open');}
+function closeSongDrawer(e){
+  if(e&&e.target!==document.getElementById('songDrawer'))return;
+  document.getElementById('songDrawer').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 舞步建议 (Lo-Fi / Chillhop 特化)
+// ══════════════════════════════════════════════════════════════
+const GENRE_MOVES={
+  'lofi':[
+    {move:'慵懒 Bounce',tip:'随 kick 做轻松上下律动，不要太用力'},
+    {move:'Groove Step',tip:'重心左右移动，跟 bass 的节奏呼吸'},
+    {move:'头部 Nod',tip:'Lo-Fi 标志动作：头轻轻点拍，像在听歌发呆'},
+    {move:'Hand Wave',tip:'手臂慢 wave，配合 piano/synth 旋律走向'},
+    {move:'Chill Rock',tip:'身体前后轻摇，感受低频温暖'},
+  ],
+  'hiphop':[
+    {move:'Bounce 弹跳',tip:'跟 kick 做身体弹跳，snare 打到时停顿'},
+    {move:'Running Man',tip:'4 拍一个循环，踩稳每个 kick'},
+    {move:'Two Step',tip:'左右踏步，kick 踩实'},
+    {move:'Body Rock',tip:'身体整体律动，重心跟随节拍'},
+    {move:'Pop & Lock',tip:'snare 来了时做 pop 定格'},
+  ],
+  'default':[
+    {move:'自由律动',tip:'跟随节拍感受音乐'},
+    {move:'踏步移位',tip:'踩稳 kick，感受地板的力量'},
+    {move:'手臂律动',tip:'配合旋律做流动手臂动作'},
+  ]
+};
+
+function buildDanceMoves(){
+  DANCE_MOVES=[];
+  const genreKey=GENRE_INFO?.type||'default';
+  const moves=GENRE_MOVES[genreKey]||GENRE_MOVES.default;
+
+  const kickH=STEMS.kick?.hits||[];
+  const bassH=STEMS.bass?.hits||[];
+  const vocalH=STEMS.vocals?.hits||[];
+
+  BAR_STARTS.forEach((t,i)=>{
+    const end=BAR_STARTS[i+1]||TOTAL;
+    const kicks=kickH.filter(h=>h>=t&&h<end).length;
+    const bass=bassH.filter(h=>h>=t&&h<end).length;
+    const voc=vocalH.filter(h=>h>=t&&h<end).length;
+
+    // 根据段落特征选最合适的动作
+    let moveIdx;
+    if(voc>=3) moveIdx=3%moves.length;       // 人声多 → 手部动作
+    else if(kicks>=6) moveIdx=0;             // 密集 kick → 律动
+    else if(bass>=4) moveIdx=1%moves.length; // Bass 重 → 重心
+    else moveIdx=i%moves.length;             // 轮转
+
+    DANCE_MOVES.push({time:t,end,move:moves[moveIdx].move,tip:moves[moveIdx].tip,barIdx:i});
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// 轨道气泡 & 大横幅
+// ══════════════════════════════════════════════════════════════
+// 记录每个事件上次触发时间
+const evShownAt={};
+let segBannerTimer=null;
+
+function showTrackBubble(trackName, icon, text, color){
+  const row=document.getElementById('tr-'+trackName);
+  if(!row)return;
+  let overlay=row.querySelector('.tr-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.className='tr-overlay';
+    row.appendChild(overlay);
+  }
+  // 移除旧气泡
+  overlay.querySelectorAll('.tr-bubble').forEach(b=>{
+    b.classList.remove('pop');
+    b.classList.add('dismiss');
+    setTimeout(()=>b.remove(),400);
+  });
+  const bubble=document.createElement('div');
+  bubble.className='tr-bubble';
+  bubble.style.background=`rgba(5,5,14,.88)`;
+  bubble.style.borderColor=color+'55';
+  bubble.style.color=color;
+  bubble.innerHTML=`<span>${icon}</span><span>${text}</span>`;
+  overlay.appendChild(bubble);
+  void bubble.offsetWidth;
+  bubble.classList.add('pop');
+  setTimeout(()=>{
+    bubble.classList.remove('pop');
+    bubble.classList.add('dismiss');
+    setTimeout(()=>bubble.remove(),400);
+  },3500);
+}
+
+function showSegmentBanner(icon,text,color){
+  const el=document.getElementById('segBanner');
+  el.textContent=icon+' '+text;
+  el.style.color=color;
+  el.style.borderColor=color+'55';
+  el.style.boxShadow=`0 0 30px ${color}33`;
+  el.classList.remove('show','hide');
+  void el.offsetWidth;
+  el.classList.add('show');
+  if(segBannerTimer)clearTimeout(segBannerTimer);
+  segBannerTimer=setTimeout(()=>{
+    el.classList.remove('show');
+    el.classList.add('hide');
+  },2500);
+}
+
+// ══════════════════════════════════════════════════════════════
+// DAW
 // ══════════════════════════════════════════════════════════════
 let trackRows=[];
-const STEM_COLORS={drums:'#ff3b30',bass:'#0a84ff',vocals:'#30d158',other:'#bf5af2'};
-const STEM_ICONS={drums:'🥁',bass:'🎸',vocals:'🎤',other:'🔔'};
-const STEM_NAMES={drums:'DRUMS 鼓轨',bass:'BASS 贝斯轨',vocals:'VOCALS 人声轨',other:'OTHER 其他/音效'};
 
 function buildDAW(){
   const daw=document.getElementById('daw');
-  daw.innerHTML='';
-  trackRows=[];
+  daw.innerHTML='';trackRows=[];
 
-  // 按 stem 分组
-  const grouped={drums:[],bass:[],vocals:[],other:[]};
-  TRACKS_CFG.forEach(tc=>{ if(grouped[tc.stem])grouped[tc.stem].push(tc); });
+  const grouped={};
+  TRACKS_CFG.forEach(tc=>{if(!grouped[tc.stem])grouped[tc.stem]=[];grouped[tc.stem].push(tc);});
 
-  ['drums','bass','vocals','other'].forEach(stemName=>{
+  ['drums','bass','guitar','piano','vocals','other'].forEach(stemName=>{
     const tracks=grouped[stemName];
     if(!tracks||!tracks.length)return;
-
-    // Stem 分组标题
     const hdr=document.createElement('div');
     hdr.className='stem-hdr';
-    hdr.style.borderLeftColor=STEM_COLORS[stemName];
     hdr.style.borderLeft=`3px solid ${STEM_COLORS[stemName]}`;
     hdr.innerHTML=`<span class="stem-hdr-icon">${STEM_ICONS[stemName]}</span>
       <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>`;
     daw.appendChild(hdr);
 
     tracks.forEach(tc=>{
-      const stemData=STEMS[stemName]||{};
-      const subData=(stemData.sub_bands||{})[tc.name]||{};
-
+      const subData=STEMS[tc.name]||(STEMS[stemName]||{}).sub_bands?.[tc.name]||{};
       const row=document.createElement('div');
-      row.className='tr';
-
+      row.className='tr';row.id='tr-'+tc.name;
       const label=document.createElement('div');
       label.className='tr-label';
       label.innerHTML=`<span class="tr-icon">${tc.icon}</span>
-        <div><div class="tr-name" style="color:${tc.color}">${tc.label.split('/')[0].split(' ').slice(0,2).join(' ')}</div>
-        <div class="tr-hz">${tc.freq}</div></div>`;
-
+        <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
+        <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
       const cvWrap=document.createElement('div');
       cvWrap.className='tr-cv';
       const cv=document.createElement('canvas');
       cvWrap.appendChild(cv);
-
-      row.appendChild(label);
-      row.appendChild(cvWrap);
+      row.appendChild(label);row.appendChild(cvWrap);
       daw.appendChild(row);
-
       trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0});
     });
   });
-
   resizeTracks();
 }
 
 function resizeTracks(){
   trackRows.forEach(t=>{
-    const w=t.wrap.offsetWidth, h=t.wrap.offsetHeight;
-    t.cv.width=w*DPR; t.cv.height=h*DPR;
-    t.cv.style.width=w+'px'; t.cv.style.height=h+'px';
-    t.w=w; t.h=h;
+    const w=t.wrap.offsetWidth,h=t.wrap.offsetHeight;
+    t.cv.width=w*DPR;t.cv.height=h*DPR;
+    t.cv.style.width=w+'px';t.cv.style.height=h+'px';
+    t.w=w;t.h=h;
   });
 }
 
 // ── 绘制轨道 ──
 function drawTracks(){
-  const ct=getTime();
-  const dur=TOTAL;
-
+  const ct=getTime(),dur=TOTAL;
   trackRows.forEach(t=>{
     const ctx=t.cv.getContext('2d');
-    const W=t.w*DPR, H=t.h*DPR;
+    const W=t.w*DPR,H=t.h*DPR;
     if(!W||!H)return;
     ctx.clearRect(0,0,W,H);
-
     const col=t.tc.color;
     const hits=t.subData.hits||[];
     const curve=t.subData.energy_curve||[];
     const isMuted=stemMuted[t.stemName]||(soloActive&&soloActive!==t.stemName);
+    const alpha=isMuted?0.1:1;
 
-    // 静音时变暗
-    const alpha=isMuted?0.15:1;
-
-    // 背景能量曲线
     if(curve.length>0){
-      ctx.save(); ctx.globalAlpha=alpha;
-      ctx.beginPath(); ctx.moveTo(0,H);
+      ctx.save();ctx.globalAlpha=alpha;
+      ctx.beginPath();ctx.moveTo(0,H);
       for(let i=0;i<curve.length;i++){
         const x=(i/curve.length)*W;
-        ctx.lineTo(x, H-curve[i]*H*0.85);
+        ctx.lineTo(x,H-curve[i]*H*0.85);
       }
-      ctx.lineTo(W,H); ctx.closePath();
+      ctx.lineTo(W,H);ctx.closePath();
       const g=ctx.createLinearGradient(0,0,0,H);
-      g.addColorStop(0,col+'28'); g.addColorStop(1,col+'06');
-      ctx.fillStyle=g; ctx.fill();
-
+      g.addColorStop(0,col+'28');g.addColorStop(1,col+'05');
+      ctx.fillStyle=g;ctx.fill();
       ctx.beginPath();
       for(let i=0;i<curve.length;i++){
         const x=(i/curve.length)*W;
         i===0?ctx.moveTo(x,H-curve[i]*H*.85):ctx.lineTo(x,H-curve[i]*H*.85);
       }
-      ctx.strokeStyle=col+'44'; ctx.lineWidth=1; ctx.stroke();
+      ctx.strokeStyle=col+'44';ctx.lineWidth=1;ctx.stroke();
       ctx.restore();
     }
 
-    // 事件竖线
-    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.save();ctx.globalAlpha=alpha;
+    let hasActiveHit=false;
     hits.forEach(ht=>{
       const x=(ht/dur)*W;
-      const isCur=Math.abs(ht-ct)<0.15;
+      const isCur=Math.abs(ht-ct)<0.12;
       ctx.strokeStyle=isCur?col:col+'44';
-      ctx.lineWidth=isCur?2.5:0.8;
-      if(isCur){ctx.shadowColor=col;ctx.shadowBlur=6;}
-      ctx.beginPath(); ctx.moveTo(x,H*.08); ctx.lineTo(x,H*.92); ctx.stroke();
+      ctx.lineWidth=isCur?3:0.8;
+      if(isCur){ctx.shadowColor=col;ctx.shadowBlur=8;hasActiveHit=true;}
+      ctx.beginPath();ctx.moveTo(x,H*.05);ctx.lineTo(x,H*.95);ctx.stroke();
       ctx.shadowBlur=0;
       if(isCur){
         ctx.fillStyle=col;
-        ctx.beginPath(); ctx.arc(x,H/2,3,0,Math.PI*2); ctx.fill();
+        ctx.beginPath();ctx.arc(x,H/2,3.5,0,Math.PI*2);ctx.fill();
       }
     });
     ctx.restore();
@@ -451,63 +828,77 @@ function drawTracks(){
     ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(phX,0);ctx.lineTo(phX,H);ctx.stroke();
 
-    // 实时能量条（右侧）
+    // 实时能量条
     if(_ready&&stemAnalysers[t.stemName]){
       const a=stemAnalysers[t.stemName];
       const fd=new Uint8Array(a.frequencyBinCount);
       a.getByteFrequencyData(fd);
-      const SR=actx.sampleRate, binHz=SR/FFT, bins=a.frequencyBinCount;
-      const lo=Math.max(0,Math.round(parseInt(t.tc.freq)/binHz));
-      const hi=Math.min(bins-1,Math.round(parseInt(t.tc.freq.split('-')[1])/binHz));
+      const SR=actx.sampleRate,binHz=SR/FFT,bins=a.frequencyBinCount;
+      let lo=0,hi=bins-1;
+      if(t.tc.freq&&t.tc.freq.includes('-')){
+        lo=Math.max(0,Math.round(parseInt(t.tc.freq)/binHz));
+        hi=Math.min(bins-1,Math.round(parseInt(t.tc.freq.split('-')[1])/binHz));
+      }
       let sum=0,cnt=0;
       for(let b=lo;b<=hi;b++){sum+=fd[b];cnt++;}
       const e=cnt>0?sum/(cnt*255):0;
-      const barW=5*DPR, barH=e*H*.9, bx=W-barW-1;
-      ctx.globalAlpha=isMuted?.1:1;
+      const bW=6*DPR,bH=e*H*.88,bx=W-bW-2;
+      ctx.globalAlpha=isMuted?.06:1;
       ctx.fillStyle=col+'99';
-      ctx.fillRect(bx,H-barH,barW,barH);
+      ctx.fillRect(bx,H-bH,bW,bH);
       ctx.globalAlpha=1;
-      if(e>0.45&&!isMuted)t.flashTimer=5;
+      if(e>0.4&&!isMuted)t.flashTimer=4;
     }
 
+    if(hasActiveHit&&!isMuted){
+      t.flashTimer=5;
+      triggerHitVFX(t.tc.name,col);
+    }
     if(t.flashTimer>0){t.row.classList.add('flash');t.flashTimer--;}
-    else{t.row.classList.remove('flash');}
+    else t.row.classList.remove('flash');
   });
 }
 
 // ══════════════════════════════════════════════════════════════
-// Stem 静音/Solo
+// HIT VFX
 // ══════════════════════════════════════════════════════════════
-function toggleStem(btn){
-  const name=btn.dataset.stem;
-  stemMuted[name]=!stemMuted[name];
-  STEM_AUDS[name].muted=stemMuted[name];
-  btn.classList.toggle('muted',stemMuted[name]);
-  btn.classList.toggle('on',!stemMuted[name]);
-}
+let lastFlashT=0;
 
-function soloStem(btn){
-  const name=btn.dataset.solo;
-  if(soloActive===name){
-    // 取消 solo
-    soloActive=null;
-    Object.keys(STEM_AUDS).forEach(n=>{
-      STEM_AUDS[n].muted=stemMuted[n];
-    });
-    document.querySelectorAll('[data-solo]').forEach(b=>b.classList.remove('solo'));
-  }else{
-    soloActive=name;
-    Object.keys(STEM_AUDS).forEach(n=>{
-      STEM_AUDS[n].muted=(n!==name);
-    });
-    document.querySelectorAll('[data-solo]').forEach(b=>{
-      b.classList.toggle('solo',b.dataset.solo===name);
-    });
+function triggerHitVFX(name,color){
+  // HIT 指示条
+  const seg=document.getElementById('hs-'+name);
+  if(seg){
+    seg.classList.remove('active');
+    void seg.offsetWidth;
+    seg.classList.add('active');
+  }
+  const ct=getTime();
+  if(ct-lastFlashT<0.12)return;
+  const kickHit=isHitting('kick',ct);
+  const snareHit=isHitting('snare',ct);
+  if(kickHit&&snareHit){
+    fireFlash('#ff3b30',0.25);lastFlashT=ct;
+  }else if(kickHit){
+    fireEdge('#ff3b30');
+  }else if(snareHit){
+    fireEdge('#ff9f0a');
   }
 }
 
-function setVol(v){
-  Object.values(STEM_AUDS).forEach(a=>a.volume=v);
+function isHitting(n,ct){
+  return (STEMS[n]?.hits||[]).some(t=>Math.abs(t-ct)<0.12);
+}
+
+function fireFlash(color,intensity){
+  const el=document.getElementById('hitFlash');
+  const hex=Math.round(intensity*80).toString(16).padStart(2,'0');
+  el.style.background=`radial-gradient(circle at center,${color}${hex},transparent 70%)`;
+  el.classList.remove('fire');void el.offsetWidth;el.classList.add('fire');
+}
+function fireEdge(color){
+  const el=document.getElementById('edgeGlow');
+  el.style.boxShadow=`inset 0 0 60px 10px ${color}33,inset 0 0 120px 20px ${color}15`;
+  el.classList.remove('fire');void el.offsetWidth;el.classList.add('fire');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -515,41 +906,36 @@ function setVol(v){
 // ══════════════════════════════════════════════════════════════
 const wfCv=document.getElementById('wf-cv');
 let WW,WH;
-
 function drawStaticWF(){
   if(!WW)return;
   const ctx=wfCv.getContext('2d'),W=WW*DPR,H=WH*DPR;
   ctx.clearRect(0,0,W,H);ctx.fillStyle='#020208';ctx.fillRect(0,0,W,H);
-
-  // 每轨 hits
   TRACKS_CFG.forEach(tc=>{
-    const hits=(STEMS[tc.stem]||{}).sub_bands?.[tc.name]?.hits||[];
+    const hits=(STEMS[tc.name]||{}).hits||[];
     ctx.strokeStyle=tc.color+'33';ctx.lineWidth=.6;
     hits.forEach(t=>{const x=(t/TOTAL)*W;ctx.beginPath();ctx.moveTo(x,H*.1);ctx.lineTo(x,H*.9);ctx.stroke();});
   });
-
-  // 8拍虚线
   ctx.strokeStyle='rgba(255,110,199,.15)';ctx.lineWidth=.8;ctx.setLineDash([2,4]);
   BAR_STARTS.forEach(t=>{const x=(t/TOTAL)*W;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();});
   ctx.setLineDash([]);
-
   EVENTS.forEach(e=>{
     if(!e.is_cue)return;
     const x=(e.time/TOTAL)*W,c=e.color||'#fff';
     ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=3;
-    ctx.beginPath();ctx.moveTo(x,2);ctx.lineTo(x+2.5,H/2);ctx.lineTo(x,H-2);ctx.lineTo(x-2.5,H/2);
+    ctx.beginPath();ctx.moveTo(x,2);ctx.lineTo(x+3,H/2);ctx.lineTo(x,H-2);ctx.lineTo(x-3,H/2);
     ctx.closePath();ctx.fill();ctx.shadowBlur=0;
   });
 }
 
 // ══════════════════════════════════════════════════════════════
-// 事件日志
+// 事件日志 + 轨道气泡触发
 // ══════════════════════════════════════════════════════════════
 function buildLog(){
   const l=document.getElementById('evl');l.innerHTML='';
   EVENTS.forEach((e,i)=>{
-    const el=document.createElement('div');el.className='ev-item';el.id='ei'+i;
-    el.innerHTML=`<span class="ev-t">${e.time.toFixed(1)}s</span><span class="ev-i">${e.icon||'🎵'}</span><span class="ev-tx">${e.desc||e.label||''}</span><div class="ev-dot" style="background:${e.color||'#888'}"></div>`;
+    const el=document.createElement('div');
+    el.className='ev-item';el.id='ei'+i;
+    el.innerHTML=`<span class="ev-t">${e.time.toFixed(1)}s</span><span class="ev-i">${e.icon||'🎵'}</span><span class="ev-tx">${e.label||e.desc||''}</span><div class="ev-dot" style="background:${e.color||'#888'}"></div>`;
     l.appendChild(el);e.el=el;
   });
 }
@@ -561,9 +947,10 @@ function updateCue(){
   EVENTS.forEach(e=>{const d=ct-e.time;if(d>=0&&d<4&&d<bd){bd=d;best=e;}});
   const cue=document.getElementById('cue');
   if(best){
-    cue.style.background=best.color+'25';cue.style.borderColor=best.color+'77';cue.style.color=best.color;
+    cue.style.background=best.color+'1a';cue.style.borderColor=best.color+'55';cue.style.color=best.color;
     document.getElementById('ci').textContent=best.icon||'🎵';
-    document.getElementById('ct').textContent=best.desc||best.label||'';
+    document.getElementById('ct').textContent=best.label||best.desc||'';
+    document.getElementById('csub').textContent=best.desc||'';
     if(best.idx!==lastEv){
       lastEv=best.idx;
       document.querySelectorAll('.ev-item').forEach(el=>{
@@ -572,19 +959,63 @@ function updateCue(){
       });
       best.el?.classList.add('active');
       best.el?.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+      // ★ 触发轨道气泡/大横幅
+      const k=`${best.idx}`;
+      if(!evShownAt[k]){
+        evShownAt[k]=ct;
+        triggerEventVisual(best);
+      }
     }
   }else if(_playing){
-    cue.style.background='rgba(0,0,0,.5)';cue.style.borderColor='rgba(255,255,255,.06)';
-    cue.style.color='rgba(255,255,255,.25)';
+    cue.style.background='rgba(0,0,0,.4)';
+    cue.style.borderColor='rgba(255,255,255,.06)';
+    cue.style.color='rgba(255,255,255,.22)';
     document.getElementById('ci').textContent='🎯';
     document.getElementById('ct').textContent=ct<MSTART?'等待音乐...':'感受节拍';
+    document.getElementById('csub').textContent='';
   }
 }
 
+// 根据事件类型触发不同视觉反馈
+function triggerEventVisual(ev){
+  const type=ev.type||'';
+  // 段落事件 → 大横幅
+  if(type==='bar1'||type==='peak'){
+    showSegmentBanner(ev.icon||'🔁',ev.label||ev.desc||'',ev.color||'#fff');
+    return;
+  }
+  // 乐器进入 → 对应轨道气泡
+  const trackMap={
+    kick:'kick',snare:'snare',cymbals:'cymbals',toms:'toms',
+    bass_in:'bass',vocal:'vocals',guitar:'guitar',piano:'piano',bass:'bass'
+  };
+  const trackName=trackMap[type]||type;
+  showTrackBubble(trackName,ev.icon||'✨',ev.label||ev.desc||'',ev.color||'#fff');
+}
+
 // ══════════════════════════════════════════════════════════════
-// 8拍
+// 8拍 + and拍
 // ══════════════════════════════════════════════════════════════
 let curBeat=-1,curBar=-1;
+let andMode=false; // and拍开关
+let curSub=-1;     // 当前子拍索引(0=1 1=e 2=& 3=a)
+let curSubBeat=-1; // 当前属于第几个主拍
+
+function toggleAndMode(){
+  andMode=!andMode;
+  const btn=document.getElementById('andModeBtn');
+  const grid=document.getElementById('andGrid');
+  btn.classList.toggle('active',andMode);
+  grid.style.display=andMode?'grid':'none';
+  if(!andMode){
+    // 清空所有 ax子单元
+    for(let b=0;b<8;b++)for(let s=0;s<4;s++){
+      document.getElementById(`ax${b}-${s}`)?.classList.remove('on1','one','onaand','ona');
+    }
+  }
+}
+
 function updateBeat(){
   const ct=getTime();
   if(!BEATS.length||ct<MSTART){
@@ -602,20 +1033,57 @@ function updateBeat(){
     el.classList.add('on');
     const bt=BEATS[bi];
     if(nb===0)el.classList.add('bar1');
-    else if(KICK.some(t=>Math.abs(t-bt)<.1))el.classList.add('kick');
-    else if(SNARE.some(t=>Math.abs(t-bt)<.1))el.classList.add('snare');
-    else if(HIHAT.some(t=>Math.abs(t-bt)<.1))el.classList.add('hihat');
+    else if(isHitting('kick',bt))el.classList.add('kick');
+    else if(isHitting('snare',bt))el.classList.add('snare');
   }
-  if(nbar!==curBar){curBar=nbar;document.getElementById('bnum').textContent=curBar+1;}
+  if(nbar!==curBar){
+    curBar=nbar;
+    document.getElementById('bnum').textContent=curBar+1;
+  }
+
+  // and拍细分
+  if(andMode&&BEATS.length>1){
+    const beatDur=BEATS[Math.min(bi+1,BEATS.length-1)]-BEATS[Math.max(bi-1,0)];
+    const subDur=(BEATS[1]-BEATS[0])/4; // 每个主拍分成 4 个子拍
+    const beatStart=BEATS[bi];
+    const elapsed=ct-beatStart;
+    const ns=Math.min(3,Math.floor(elapsed/subDur)); // 0=1,1=e,2=&,3=a
+    if(ns!==curSub||nb!==curSubBeat){
+      // 清除上一个
+      if(curSubBeat>=0&&curSubBeat<8&&curSub>=0){
+        const cls=['on1','one','onaand','ona'][curSub];
+        document.getElementById(`ax${curSubBeat}-${curSub}`)?.classList.remove(cls);
+      }
+      curSub=ns;curSubBeat=nb;
+      const cls=['on1','one','onaand','ona'][ns];
+      document.getElementById(`ax${nb}-${ns}`)?.classList.add(cls);
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// 舞步更新
+// ══════════════════════════════════════════════════════════════
+function updateDance(){
+  const ct=getTime();
+  let cur=null;
+  for(let i=DANCE_MOVES.length-1;i>=0;i--){
+    if(ct>=DANCE_MOVES[i].time&&ct<DANCE_MOVES[i].end){cur=DANCE_MOVES[i];break;}
+  }
+  if(cur&&_playing){
+    const genreLabel=GENRE_INFO?.short||GENRE_INFO?.name||'跳舞建议';
+    document.getElementById('danceStyle').textContent=`💃 ${genreLabel}`;
+    document.getElementById('danceMoveName').textContent=cur.move;
+    document.getElementById('danceMoveTip').textContent=cur.tip;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
 // 播放头
 // ══════════════════════════════════════════════════════════════
 function getTime(){return STEM_AUDS.drums.currentTime||0;}
-
 function updateHead(){
-  const ct=getTime(), dur=TOTAL;
+  const ct=getTime(),dur=TOTAL;
   document.getElementById('ph').style.left=(dur>0?ct/dur*100:0)+'%';
   const f=fmt(ct);
   document.getElementById('tc').textContent=f;
@@ -626,10 +1094,7 @@ function updateHead(){
 // 主循环
 // ══════════════════════════════════════════════════════════════
 function loop(){
-  drawTracks();
-  updateHead();
-  updateBeat();
-  updateCue();
+  drawTracks();updateHead();updateBeat();updateCue();updateDance();
   requestAnimationFrame(loop);
 }
 
@@ -638,47 +1103,50 @@ function loop(){
 // ══════════════════════════════════════════════════════════════
 let _playing=false;
 function tp(){_playing?pa():pl();}
-
 function pl(){
   initAudio();
   if(actx?.state==='suspended')actx.resume();
-  // 同步播放所有 stem
-  const stems=Object.values(STEM_AUDS);
-  stems.forEach(a=>a.play().catch(()=>{}));
-  _playing=true;
-  document.getElementById('pb').textContent='⏸';
+  Object.values(STEM_AUDS).forEach(a=>a.play().catch(()=>{}));
+  _playing=true;document.getElementById('pb').textContent='⏸';
 }
-
 function pa(){
   Object.values(STEM_AUDS).forEach(a=>a.pause());
-  _playing=false;
-  document.getElementById('pb').textContent='▶';
+  _playing=false;document.getElementById('pb').textContent='▶';
 }
-
-// 同步所有 stem 的时间
-function syncTime(t){
-  Object.values(STEM_AUDS).forEach(a=>{a.currentTime=t;});
-}
+function syncTime(t){Object.values(STEM_AUDS).forEach(a=>{a.currentTime=t;});}
 
 STEM_AUDS.drums.addEventListener('ended',()=>{_playing=false;document.getElementById('pb').textContent='▶';});
-
 function skipB(n){
   const bd=BEATS.length>1?(BEATS[1]-BEATS[0]):(60/BPM);
-  const t=Math.max(0,Math.min(TOTAL,getTime()+n*bd));
-  syncTime(t);
+  syncTime(Math.max(0,Math.min(TOTAL,getTime()+n*bd)));
 }
-
 function seekClick(e,el){
   const r=el.getBoundingClientRect();
   syncTime(((e.clientX-r.left)/r.width)*TOTAL);
 }
-
 function ss(v,btn){
   Object.values(STEM_AUDS).forEach(a=>a.playbackRate=v);
   document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
 }
-
+function toggleStem(btn){
+  const n=btn.dataset.stem;stemMuted[n]=!stemMuted[n];
+  STEM_AUDS[n].muted=stemMuted[n];
+  btn.classList.toggle('muted',stemMuted[n]);btn.classList.toggle('on',!stemMuted[n]);
+}
+function soloStem(btn){
+  const n=btn.dataset.solo;
+  if(soloActive===n){
+    soloActive=null;
+    Object.keys(STEM_AUDS).forEach(k=>{STEM_AUDS[k].muted=stemMuted[k];});
+    document.querySelectorAll('[data-solo]').forEach(b=>b.classList.remove('solo'));
+  }else{
+    soloActive=n;
+    Object.keys(STEM_AUDS).forEach(k=>{STEM_AUDS[k].muted=(k!==n);});
+    document.querySelectorAll('[data-solo]').forEach(b=>b.classList.toggle('solo',b.dataset.solo===n));
+  }
+}
+function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
 function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
 STEM_AUDS.drums.addEventListener('loadedmetadata',()=>{
@@ -693,16 +1161,10 @@ function resize(){
   WW=wfCv.offsetWidth;WH=wfCv.offsetHeight;
   wfCv.width=WW*DPR;wfCv.height=WH*DPR;
   wfCv.style.width=WW+'px';wfCv.style.height=WH+'px';
-  resizeTracks();
-  drawStaticWF();
+  resizeTracks();drawStaticWF();
 }
 window.addEventListener('resize',resize);
-
-window.addEventListener('load',async()=>{
-  resize();
-  await loadJSON();
-  loop();
-});
+window.addEventListener('load',async()=>{resize();await loadJSON();loop();});
 </script>
 </body>
 </html>
