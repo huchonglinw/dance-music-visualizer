@@ -626,7 +626,7 @@ const STEM_NAMES={drums:'DRUMS 鼓组',bass:'BASS 贝斯',vocals:'VOCALS 人声'
 async function loadSongList(){
   try{
     const d=await(await fetch('beats/index.json')).json();
-    ALL_SONGS=d.songs||[];
+    ALL_SONGS=Array.isArray(d)?d:(d.songs||[]);
     buildSongList();
   }catch(e){ALL_SONGS=[{file:'watercolor.json',song:'Watercolor',artist:'Katuchat'}];}
 }
