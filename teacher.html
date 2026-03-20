@@ -266,6 +266,8 @@ body{display:flex;flex-direction:column}
 /* 单轨道行 */
 .tr{display:flex;align-items:stretch;height:32px;border-bottom:1px solid rgba(255,255,255,.03);
   transition:background .08s;position:relative;overflow:hidden}
+.tr.sub-track{padding-left:14px}
+.tr.sub-track .tr-label{border-left:2px solid rgba(255,255,255,.06);margin-left:0;padding-left:4px}
 .tr:hover{background:rgba(255,255,255,.015)}
 .tr.flash{background:rgba(255,255,255,.05)}
 .tr.hit-glow{animation:trackHit .35s ease-out}
@@ -537,19 +539,89 @@ const FFT=4096;
 let _ready=false;
 const DPR=devicePixelRatio||1;
 
+// ── 每轨带通滤波器 + Gain 节点（解决 stem 级 mute 串音）──
+let trackGains = {};  // trackName → GainNode
+
 function initAudio(){
   if(_ready)return;
   try{
     actx=new(window.AudioContext||window.webkitAudioContext)();
     AUD.volume=0;AUD.muted=true;
-    ['drums','bass','guitar','piano','vocals','other'].forEach(n=>{
-      const a=actx.createAnalyser();
-      a.fftSize=FFT;a.smoothingTimeConstant=0.72;a.minDecibels=-95;a.maxDecibels=-5;
-      const s=actx.createMediaElementSource(STEM_AUDS[n]);
-      s.connect(a);a.connect(actx.destination);
-      stemAnalysers[n]=a;stemSrcs[n]=s;
+
+    // 按 stem 分组 TRACKS_CFG
+    const stemTracks = {};
+    TRACKS_CFG.forEach(tc=>{
+      if(!stemTracks[tc.stem]) stemTracks[tc.stem]=[];
+      stemTracks[tc.stem].push(tc);
+    });
+
+    ['drums','bass','guitar','piano','vocals','other'].forEach(stemName=>{
+      const src = actx.createMediaElementSource(STEM_AUDS[stemName]);
+      stemSrcs[stemName] = src;
+
+      // Analyser（用于实时频谱显示）
+      const analyser = actx.createAnalyser();
+      analyser.fftSize=FFT; analyser.smoothingTimeConstant=0.72;
+      analyser.minDecibels=-95; analyser.maxDecibels=-5;
+      stemAnalysers[stemName] = analyser;
+
+      const tracks = stemTracks[stemName] || [];
+      const hasBandTracks = tracks.some(tc => tc._loHz != null && tc._hiHz != null);
+
+      if(hasBandTracks && tracks.length > 1){
+        // ── 多轨 stem：每轨一个 BPF → Gain → merger ──
+        // src → 各子轨 BPF → Gain → merger → analyser → dest
+        const merger = actx.createGain();
+        merger.gain.value = 1;
+
+        tracks.forEach(tc => {
+          if(tc._loHz != null && tc._hiHz != null){
+            // 带频段的轨道：用双重滤波器（高通+低通）精确截断
+            const hpf = actx.createBiquadFilter();
+            hpf.type = 'highpass'; hpf.frequency.value = tc._loHz; hpf.Q.value = 0.7;
+            const lpf = actx.createBiquadFilter();
+            lpf.type = 'lowpass'; lpf.frequency.value = tc._hiHz; lpf.Q.value = 0.7;
+            const gain = actx.createGain();
+            gain.gain.value = 1;
+
+            src.connect(hpf);
+            hpf.connect(lpf);
+            lpf.connect(gain);
+            gain.connect(merger);
+
+            trackGains[tc.name] = gain;
+          } else {
+            // 全频段轨道（不应出现在多轨stem中，但兜底）
+            const gain = actx.createGain();
+            gain.gain.value = 1;
+            src.connect(gain);
+            gain.connect(merger);
+            trackGains[tc.name] = gain;
+          }
+        });
+
+        merger.connect(analyser);
+        analyser.connect(actx.destination);
+
+      } else {
+        // ── 单轨 stem（guitar/piano）或无频段信息：直通 ──
+        const gain = actx.createGain();
+        gain.gain.value = 1;
+        src.connect(gain);
+        gain.connect(analyser);
+        analyser.connect(actx.destination);
+
+        if(tracks.length === 1){
+          trackGains[tracks[0].name] = gain;
+        } else {
+          tracks.forEach(tc => {
+            trackGains[tc.name] = gain;
+          });
+        }
+      }
     });
     _ready=true;
+    console.log('🎛 Audio: 带通滤波器路由已初始化，', Object.keys(trackGains).length, '个轨道增益节点');
   }catch(e){console.warn('AudioCtx:',e)}
 }
 
@@ -853,7 +925,8 @@ function buildDAW(){
     tracks.forEach(tc=>{
       const subData=STEMS[tc.name]||{};
       const row=document.createElement('div');
-      row.className='tr';row.id='tr-'+tc.name;
+      const isSubTrack = tracks.length > 1;
+      row.className='tr'+(isSubTrack?' sub-track':'');row.id='tr-'+tc.name;
       const label=document.createElement('div');
       label.className='tr-label';
       label.innerHTML=`<span class="tr-icon">${tc.icon}</span>
@@ -1600,8 +1673,14 @@ function toggleTrack(btn){
 function syncStemMute(stem){
   const allTracksOfStem = TRACKS_CFG.filter(t=>t.stem===stem);
   const allMuted = allTracksOfStem.every(t=>trackMuted[t.name]);
+  // stem 音频 mute：只有全部子轨 muted 才 mute 音频源
   if(STEM_AUDS[stem]) STEM_AUDS[stem].muted = allMuted;
   stemMuted[stem] = allMuted;
+  // per-track gain 控制：精确频段静音
+  allTracksOfStem.forEach(tc=>{
+    const g = trackGains[tc.name];
+    if(g) g.gain.value = trackMuted[tc.name] ? 0 : 1;
+  });
 }
 
 function muteAll(muted){
@@ -1610,6 +1689,9 @@ function muteAll(muted){
     trackMuted[tc.name] = muted;
     const btn = document.getElementById('mx-'+tc.name);
     if(btn){ btn.classList.toggle('muted', muted); btn.classList.toggle('on', !muted); btn.classList.remove('solo'); }
+    // 同步 gain 节点
+    const g = trackGains[tc.name];
+    if(g) g.gain.value = muted ? 0 : 1;
   });
   Object.keys(STEM_AUDS).forEach(k=>{ STEM_AUDS[k].muted = muted; stemMuted[k] = muted; });
 }
@@ -1627,8 +1709,12 @@ function soloTrack(name){
       btn.classList.toggle('on', isSolo);
       btn.classList.toggle('solo', isSolo);
     }
+    // gain 节点：只开 solo 轨
+    const g = trackGains[t.name];
+    if(g) g.gain.value = isSolo ? 1 : 0;
   });
-  // 音频：只开 solo 轨所在的 stem
+  // 音频源：所有 stem 都不 mute（让滤波器去控制）
+  // 只 mute 完全不相关的 stem（非 solo 轨所在 stem）
   Object.keys(STEM_AUDS).forEach(k=>{
     STEM_AUDS[k].muted = (k !== soloStem);
     stemMuted[k] = (k !== soloStem);
@@ -1638,6 +1724,11 @@ function soloTrack(name){
 function exitSolo(){
   _soloTrack = null;
   muteAll(false);
+  // 确保所有 gain 恢复
+  TRACKS_CFG.forEach(tc=>{
+    const g = trackGains[tc.name];
+    if(g) g.gain.value = 1;
+  });
 }
 function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
 function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
