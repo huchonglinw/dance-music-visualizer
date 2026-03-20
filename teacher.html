@@ -419,19 +419,24 @@ header{position:relative;z-index:1}
 
 </div><!-- /tracks -->
 
+<!-- 隐藏的真实音频元素 -->
+<audio id="real-audio" preload="auto" crossorigin="anonymous">
+  <source src="songs_audio/watercolor.mp3" type="audio/mpeg">
+</audio>
+
 <!-- 进度条 -->
 <div class="prog-wrap">
-  <div class="trow"><span id="pt">0:00</span><span>3:28</span></div>
+  <div class="trow"><span id="pt">0:00</span><span id="dur-total">3:33</span></div>
   <div class="pb" onclick="seek(event,this)"><div class="pf" id="pf"></div></div>
 </div>
 
 <!-- 控制 -->
 <div class="ctrl-row">
-  <button class="aux" onclick="skip(-8)">⏮</button>
-  <button class="aux" onclick="skip(-4)">⏪</button>
+  <button class="aux" onclick="skip(-8)" title="后退8拍">⏮</button>
+  <button class="aux" onclick="skip(-4)" title="后退4拍">⏪</button>
   <button class="pbtn" id="pbtn" onclick="togglePlay()">▶</button>
-  <button class="aux" onclick="skip(4)">⏩</button>
-  <button class="aux" onclick="skip(8)">⏭</button>
+  <button class="aux" onclick="skip(4)" title="快进4拍">⏩</button>
+  <button class="aux" onclick="skip(8)" title="快进8拍">⏭</button>
 </div>
 
 <!-- 事件日志 -->
@@ -734,6 +739,29 @@ let curBeat = -1, curBar = -1;
 let startTs = null, startOff = 0, raf;
 let lastBigEvent = -1;
 
+// ── 真实音频对象 ──────────────────────────────
+const AUDIO = document.getElementById('real-audio');
+let _audioReady = false;
+
+AUDIO.addEventListener('canplaythrough', () => {
+  _audioReady = true;
+  TOTAL = AUDIO.duration;
+  const d = AUDIO.duration;
+  const durEl = document.getElementById('dur-total');
+  if (durEl) durEl.textContent = Math.floor(d/60)+':'+(Math.floor(d%60)+'').padStart(2,'0');
+  console.log('🎵 音频就绪, 时长:', fmt(d));
+});
+AUDIO.addEventListener('ended', () => {
+  isPlaying = false;
+  document.getElementById('pbtn').textContent = '▶';
+  curTime = 0; AUDIO.currentTime = 0;
+  if (raf) cancelAnimationFrame(raf);
+});
+// 兜底：音频加载失败时仍可使用可视化
+AUDIO.addEventListener('error', () => {
+  console.warn('音频加载失败，切换为纯可视化模式');
+});
+
 const BANNERS = {
   intro:   { icon:'🎵', msg:'铺底中... 等音乐进来', bg:'rgba(255,255,255,.03)', border:'var(--border)', col:'#888' },
   kick:    { icon:'👊', msg:'Kick 来了！踩住！', bg:'rgba(255,59,48,.12)', border:'var(--kick)', col:'var(--kick)' },
@@ -768,19 +796,29 @@ function play() {
   isPlaying = true;
   document.getElementById('pbtn').textContent = '⏸';
   showBanner(curTime < MUSIC_START ? 'vinyl' : 'default');
+  if (_audioReady) {
+    AUDIO.playbackRate = spd;
+    AUDIO.play().catch(e => console.warn('audio play failed:', e));
+  }
   startTs = performance.now(); startOff = curTime;
   tick();
 }
 function pause() {
   isPlaying = false;
   document.getElementById('pbtn').textContent = '▶';
+  if (_audioReady) AUDIO.pause();
   if (raf) cancelAnimationFrame(raf);
 }
 function tick() {
   if (!isPlaying) return;
-  const now = performance.now();
-  curTime = Math.min(startOff + (now - startTs)/1000*spd, TOTAL);
-  if (curTime >= TOTAL) { curTime = 0; startTs = now; startOff = 0; }
+  // 若音频就绪，以真实 audio.currentTime 为准（避免漂移）
+  if (_audioReady && !AUDIO.paused) {
+    curTime = AUDIO.currentTime;
+  } else {
+    const now = performance.now();
+    curTime = Math.min(startOff + (now - startTs)/1000*spd, TOTAL);
+    if (curTime >= TOTAL) { curTime = 0; startTs = now; startOff = 0; }
+  }
   render();
   raf = requestAnimationFrame(tick);
 }
@@ -861,13 +899,18 @@ function render() {
 }
 
 function skip(s) {
-  curTime = Math.max(0, Math.min(TOTAL, curTime + s));
+  // s 单位是「拍数」，换算成秒
+  const beatSec = BEATS.length > 1 ? (BEATS[1]-BEATS[0]) : 60/BPM;
+  const delta = s * beatSec;
+  curTime = Math.max(0, Math.min(TOTAL, curTime + delta));
+  if (_audioReady) AUDIO.currentTime = curTime;
   if (isPlaying) { startTs = performance.now(); startOff = curTime; }
   render();
 }
 function seek(e, el) {
   const r = el.getBoundingClientRect();
   curTime = Math.max(0, Math.min(1, (e.clientX-r.left)/r.width)) * TOTAL;
+  if (_audioReady) AUDIO.currentTime = curTime;
   if (isPlaying) { startTs = performance.now(); startOff = curTime; }
   render();
 }
@@ -875,6 +918,7 @@ function setSpd(s, btn) {
   spd = s;
   document.querySelectorAll('.sp').forEach(b => { b.classList.remove('on'); b.style.cssText=''; });
   btn.classList.add('on');
+  if (_audioReady) AUDIO.playbackRate = s;
   if (isPlaying) { startTs = performance.now(); startOff = curTime; }
 }
 
