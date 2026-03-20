@@ -475,7 +475,8 @@ body{display:flex;flex-direction:column}
 <div class="hit-bar" id="hitBar">
   <div class="hit-seg" id="hs-kick" style="background:#ff3b30"></div>
   <div class="hit-seg" id="hs-snare" style="background:#ff9f0a"></div>
-  <div class="hit-seg" id="hs-cymbals" style="background:#ffd60a"></div>
+  <div class="hit-seg" id="hs-hihat" style="background:#ffd60a"></div>
+  <div class="hit-seg" id="hs-crash" style="background:#ffe066"></div>
   <div class="hit-seg" id="hs-vocal_lo" style="background:#1ed760"></div>
   <div class="hit-seg" id="hs-vocal_mid" style="background:#30d158"></div>
   <div class="hit-seg" id="hs-vocal_hi" style="background:#5ade83"></div>
@@ -842,7 +843,7 @@ function buildRhythmPanel(){
 // ══════════════════════════════════════════════════════════════
 // DAW — 同 stem 子轨合并为一个合并行（可点击展开）
 // ══════════════════════════════════════════════════════════════
-// MERGE_STEMS: drums 子轨（kick/snare/cymbals）必须独立行
+// MERGE_STEMS: drums 子轨（kick/snare/hihat/crash）必须独立行
 // 只有 bass/vocals/other 的子轨可选择合并
 const MERGE_STEMS = new Set(['bass','vocals']); // other 子轨（synth/fx/other）默认展开独立行
 let trackRows=[];
@@ -1235,15 +1236,31 @@ function sfxSnare(vol=0.4){
   src.connect(hpf); hpf.connect(g); g.connect(ctx.destination); src.start(t);
 }
 
-function sfxCymbals(vol=0.2){
-  // 镲片：高频噪声，长尾衰减
+function sfxHihat(vol=0.18){
+  // 踩镲：短促金属声，快攻快衰（“踏踏”）
   const ctx=getSfxCtx(),t=ctx.currentTime;
-  const buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate);
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.06,ctx.sampleRate);
   const data=buf.getChannelData(0);
   for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1);
   const src=ctx.createBufferSource(),g=ctx.createGain();
-  const hpf=ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=6000;
-  src.buffer=buf; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+  const bpf=ctx.createBiquadFilter(); bpf.type='bandpass'; bpf.frequency.value=7000; bpf.Q.value=1.2;
+  src.buffer=buf;
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+  src.connect(bpf); bpf.connect(g); g.connect(ctx.destination); src.start(t);
+}
+
+function sfxCrash(vol=0.2){
+  // 亮镲：高频噪声，长尾衰减（“次次”）
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.35,ctx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1);
+  const src=ctx.createBufferSource(),g=ctx.createGain();
+  const hpf=ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=9000;
+  src.buffer=buf;
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.32);
   src.connect(hpf); hpf.connect(g); g.connect(ctx.destination); src.start(t);
 }
 
@@ -1338,7 +1355,8 @@ function playSFX(trackName, stemName){
   try{
     if(trackName==='kick')          sfxKick();
     else if(trackName==='snare')    sfxSnare();
-    else if(trackName==='cymbals')  sfxCymbals();
+    else if(trackName==='hihat')    sfxHihat();
+    else if(trackName==='crash')     sfxCrash();
     else if(stemName==='bass')      sfxBass();
     else if(stemName==='vocals')    sfxVocal();
     else if(stemName==='guitar')    sfxString();
@@ -1485,7 +1503,7 @@ function triggerEventVisual(ev){
   }
   // 乐器进入 → 对应轨道气泡
   const trackMap={
-    kick:'kick',snare:'snare',cymbals:'cymbals',
+    kick:'kick',snare:'snare',hihat:'hihat',crash:'crash',
     bass_in:'bass',vocal:'vocals',guitar:'guitar',piano:'piano',bass:'bass'
   };
   const trackName=trackMap[type]||type;

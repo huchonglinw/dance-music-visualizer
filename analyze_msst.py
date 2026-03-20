@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-analyze_msst.py — AI 6轨分离 + 子频段双重分析 (13轨版)
+analyze_msst.py — AI 6轨分离 + 子频段双重分析 (14轨版)
 
-轨道结构 (13轨):
-  鼓组 3子轨  : kick / snare / cymbals            (drums AI轨 → 频段滤波)
+轨道结构 (14轨):
+  鼓组 4子轨  : kick / snare / hihat / crash      (drums AI轨 → 频段滤波)
   人声 3子轨  : vocal_lo / vocal_mid / vocal_hi   (vocals AI轨 → 频段滤波)
   贝斯 2子轨  : bass_sub / bass_mid               (bass AI轨 → 频段滤波)
   独立 3轨    : guitar / piano / other
@@ -125,22 +125,25 @@ def analyze_full_track(y_stem, sr, n_fft, hop, dur):
 
 
 # ══════════════════════════════════════════════════════════════
-# 14轨配置
+# 14轨配置（实际13→14轨：cymbals 拆 hihat+crash）
 #   type='band'  → 从 stem 做频段滤波
 #   type='full'  → 直接全频段
 # ══════════════════════════════════════════════════════════════
 TRACKS_CONFIG = [
-    # ── 鼓组 3 子轨（kick/snare 分界200Hz无重叠，cymbals 3k+）──
+    # ── 鼓组 4 子轨（kick/snare/hihat/crash 频段完全不重叠）──
     {'name': 'kick',      'stem': 'drums',  'type': 'band',
      'lo': 30,   'hi': 200,   'thresh': 0.50, 'min_gap': 5,
      'label': 'Kick 底鼓',     'icon': '🥁', 'color': '#ff3b30', 'freq': '30-200Hz'},
     {'name': 'snare',     'stem': 'drums',  'type': 'band',
      'lo': 200,  'hi': 3000,  'thresh': 0.50, 'min_gap': 6,
      'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': '200-3kHz'},
-    # toms 已移除：80-400Hz 完全被 kick(30-200)+snare(200-3k) 覆盖
-    {'name': 'cymbals',   'stem': 'drums',  'type': 'band',
-     'lo': 3000, 'hi': 18000, 'thresh': 0.38, 'min_gap': 3,
-     'label': 'Cymbals 镲片',  'icon': '🎶', 'color': '#ffd60a', 'freq': '3k-18kHz'},
+    # cymbals 拆分：hihat 短促金属声(3k-8k) vs crash/ride 持续亮镲(8k-18k)
+    {'name': 'hihat',     'stem': 'drums',  'type': 'band',
+     'lo': 3000, 'hi': 8000,  'thresh': 0.35, 'min_gap': 2,
+     'label': 'Hi-Hat 踩镲',   'icon': '🔔', 'color': '#ffd60a', 'freq': '3k-8kHz'},
+    {'name': 'crash',     'stem': 'drums',  'type': 'band',
+     'lo': 8000, 'hi': 18000, 'thresh': 0.38, 'min_gap': 4,
+     'label': 'Crash 亮镲',    'icon': '💥', 'color': '#ffe066', 'freq': '8k-18kHz'},
 
     # ── 人声 3 子轨（同 stem 内无重叠：80-500 / 500-2k / 2k-8k）──
     {'name': 'vocal_lo',  'stem': 'vocals', 'type': 'band',
@@ -336,7 +339,9 @@ def analyze_rhythm_pattern(stems, beat_times, bpm, dur):
 
     kick_pos = quantize_hits('kick')
     snare_pos = quantize_hits('snare')
-    cymbal_pos = quantize_hits('cymbals')
+    hihat_pos = quantize_hits('hihat')
+    crash_pos = quantize_hits('crash')
+    cymbal_pos = hihat_pos + crash_pos  # 合并用于总体分析
 
     # 统计每个位置出现频率
     def count_positions(positions):
@@ -348,7 +353,9 @@ def analyze_rhythm_pattern(stems, beat_times, bpm, dur):
 
     kick_dist = count_positions(kick_pos)
     snare_dist = count_positions(snare_pos)
-    cymbal_dist = count_positions(cymbal_pos)
+    hihat_dist = count_positions(hihat_pos)
+    crash_dist = count_positions(crash_pos)
+    cymbal_dist = count_positions(cymbal_pos)  # 合并用于总体描述
 
     # 生成 pattern 字符串（X=强 x=弱 .=无）
     def make_pattern(dist, thresh_strong=0.15, thresh_weak=0.05):
@@ -356,7 +363,9 @@ def analyze_rhythm_pattern(stems, beat_times, bpm, dur):
 
     kick_pat = make_pattern(kick_dist)
     snare_pat = make_pattern(snare_dist)
-    cymbal_pat = make_pattern(cymbal_dist)
+    hihat_pat = make_pattern(hihat_dist)
+    crash_pat = make_pattern(crash_dist)
+    cymbal_pat = make_pattern(cymbal_dist)  # 合并用于总体展示
 
     # 自然语言描述
     details = []
@@ -411,7 +420,8 @@ def analyze_rhythm_pattern(stems, beat_times, bpm, dur):
         'details': details,
         'kick_pattern': kick_pat,
         'snare_pattern': snare_pat,
-        'cymbal_pattern': cymbal_pat,
+        'hihat_pattern': hihat_pat,
+        'crash_pattern': crash_pat,
         'kick_distribution': kick_dist,
         'snare_distribution': snare_dist,
         'bpm': bpm,
