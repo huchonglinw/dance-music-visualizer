@@ -50,7 +50,7 @@ def band_energy(D, freqs, lo, hi):
     return D[mask, :].mean(axis=0)
 
 
-def detect_hits(norm_energy, thresh=0.45, min_gap=5):
+def detect_hits(norm_energy, thresh=0.25, min_gap=3):
     """局部峰值检测，返回帧索引列表"""
     hits = []
     for i in range(1, len(norm_energy) - 1):
@@ -72,7 +72,7 @@ def downsample_curve(norm, dur, pts_per_sec=10):
     return curve
 
 
-def analyze_band_track(y_stem, sr, n_fft, hop, dur, lo, hi, thresh=0.45, min_gap=5):
+def analyze_band_track(y_stem, sr, n_fft, hop, dur, lo, hi, thresh=0.25, min_gap=3):
     """从 stem 提取指定频段：能量曲线 + hits"""
     import librosa
     D = np.abs(librosa.stft(y_stem, n_fft=n_fft, hop_length=hop))
@@ -91,9 +91,9 @@ def analyze_band_track(y_stem, sr, n_fft, hop, dur, lo, hi, thresh=0.45, min_gap
     band_D = D[(freqs >= lo) & (freqs < hi), :]
     y_band = librosa.istft(band_D, hop_length=hop)
     onsets = librosa.onset.onset_detect(y=y_band, sr=sr, units='time',
-                                        pre_max=3, post_max=3,
-                                        pre_avg=5, post_avg=5,
-                                        delta=0.05, wait=8)
+                                        pre_max=2, post_max=2,
+                                        pre_avg=3, post_avg=3,
+                                        delta=0.03, wait=4)
     onsets = [round(float(t), 3) for t in onsets if t < dur]
     return {
         'energy_curve': downsample_curve(bnorm, dur),
@@ -109,13 +109,13 @@ def analyze_full_track(y_stem, sr, n_fft, hop, dur):
     total = D.mean(axis=0)
     tmax = total.max()
     tnorm = total / tmax if tmax > 0 else np.zeros_like(total)
-    hit_frames = detect_hits(tnorm, thresh=0.45, min_gap=5)
+    hit_frames = detect_hits(tnorm, thresh=0.25, min_gap=3)
     hit_times = librosa.frames_to_time(np.array(hit_frames), sr=sr, hop_length=hop).tolist() if hit_frames else []
     hit_times = [round(float(t), 3) for t in hit_times if t < dur]
     onsets = librosa.onset.onset_detect(y=y_stem, sr=sr, units='time',
-                                        pre_max=3, post_max=3,
-                                        pre_avg=5, post_avg=5,
-                                        delta=0.05, wait=8)
+                                        pre_max=2, post_max=2,
+                                        pre_avg=3, post_avg=3,
+                                        delta=0.03, wait=4)
     onsets = [round(float(t), 3) for t in onsets if t < dur]
     return {
         'energy_curve': downsample_curve(tnorm, dur),
@@ -132,36 +132,36 @@ def analyze_full_track(y_stem, sr, n_fft, hop, dur):
 TRACKS_CONFIG = [
     # ── 鼓组 4 子轨（kick/snare/hihat/crash 频段完全不重叠）──
     {'name': 'kick',      'stem': 'drums',  'type': 'band',
-     'lo': 30,   'hi': 200,   'thresh': 0.50, 'min_gap': 5,
+     'lo': 30,   'hi': 200,   'thresh': 0.30, 'min_gap': 3,
      'label': 'Kick 底鼓',     'icon': '🥁', 'color': '#ff3b30', 'freq': '30-200Hz'},
     {'name': 'snare',     'stem': 'drums',  'type': 'band',
-     'lo': 200,  'hi': 3000,  'thresh': 0.50, 'min_gap': 6,
+     'lo': 200,  'hi': 3000,  'thresh': 0.30, 'min_gap': 4,
      'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': '200-3kHz'},
     # cymbals 拆分：hihat 短促金属声(3k-8k) vs crash/ride 持续亮镲(8k-18k)
     {'name': 'hihat',     'stem': 'drums',  'type': 'band',
-     'lo': 3000, 'hi': 8000,  'thresh': 0.35, 'min_gap': 2,
+     'lo': 3000, 'hi': 8000,  'thresh': 0.20, 'min_gap': 2,
      'label': 'Hi-Hat 踩镲',   'icon': '🔔', 'color': '#ffd60a', 'freq': '3k-8kHz'},
     {'name': 'crash',     'stem': 'drums',  'type': 'band',
-     'lo': 8000, 'hi': 18000, 'thresh': 0.38, 'min_gap': 4,
+     'lo': 8000, 'hi': 18000, 'thresh': 0.22, 'min_gap': 3,
      'label': 'Crash 亮镲',    'icon': '💥', 'color': '#ffe066', 'freq': '8k-18kHz'},
 
     # ── 人声 3 子轨（同 stem 内无重叠：80-500 / 500-2k / 2k-8k）──
     {'name': 'vocal_lo',  'stem': 'vocals', 'type': 'band',
-     'lo': 80,   'hi': 500,   'thresh': 0.42, 'min_gap': 6,
+     'lo': 80,   'hi': 500,   'thresh': 0.25, 'min_gap': 4,
      'label': 'Vocal 低频',    'icon': '🎤', 'color': '#1ed760', 'freq': '80-500Hz'},
     {'name': 'vocal_mid', 'stem': 'vocals', 'type': 'band',
-     'lo': 500,  'hi': 2000,  'thresh': 0.45, 'min_gap': 5,
+     'lo': 500,  'hi': 2000,  'thresh': 0.28, 'min_gap': 3,
      'label': 'Vocal 中频',    'icon': '🎙', 'color': '#30d158', 'freq': '500-2kHz'},
     {'name': 'vocal_hi',  'stem': 'vocals', 'type': 'band',
-     'lo': 2000, 'hi': 8000,  'thresh': 0.40, 'min_gap': 4,
+     'lo': 2000, 'hi': 8000,  'thresh': 0.25, 'min_gap': 3,
      'label': 'Vocal 高频',    'icon': '🗣', 'color': '#5ade83', 'freq': '2k-8kHz'},
 
     # ── 贝斯 2 子轨（同 stem 内无重叠：20-120 / 120-600）──
     {'name': 'bass_sub',  'stem': 'bass',   'type': 'band',
-     'lo': 20,   'hi': 120,   'thresh': 0.50, 'min_gap': 5,
+     'lo': 20,   'hi': 120,   'thresh': 0.30, 'min_gap': 3,
      'label': 'Bass Sub 超低频', 'icon': '🔈', 'color': '#0040ff', 'freq': '20-120Hz'},
     {'name': 'bass_mid',  'stem': 'bass',   'type': 'band',
-     'lo': 120,  'hi': 600,   'thresh': 0.45, 'min_gap': 5,
+     'lo': 120,  'hi': 600,   'thresh': 0.28, 'min_gap': 3,
      'label': 'Bass Mid 中低频', 'icon': '🎸', 'color': '#0a84ff', 'freq': '120-600Hz'},
 
     # ── 独立乐器轨（AI 分离后全频段）──
@@ -173,13 +173,13 @@ TRACKS_CONFIG = [
     # ── Other 拆分（同 stem 内无重叠：20-200 / 200-4k / 4k-20k）──
     # other_low 捕获 other stem 的低频垫底（pad/sub bass 类）
     {'name': 'other_low', 'stem': 'other',  'type': 'band',
-     'lo': 20,   'hi': 200,   'thresh': 0.45, 'min_gap': 6,
+     'lo': 20,   'hi': 200,   'thresh': 0.25, 'min_gap': 4,
      'label': 'Pad 低频铺底',  'icon': '🌙', 'color': '#8b5cf6', 'freq': '20-200Hz'},
     {'name': 'synth',     'stem': 'other',  'type': 'band',
-     'lo': 200,  'hi': 4000,  'thresh': 0.42, 'min_gap': 5,
+     'lo': 200,  'hi': 4000,  'thresh': 0.22, 'min_gap': 3,
      'label': 'Synth 合成器',  'icon': '🌊', 'color': '#a78bfa', 'freq': '200-4kHz'},
     {'name': 'fx',        'stem': 'other',  'type': 'band',
-     'lo': 4000, 'hi': 20000, 'thresh': 0.35, 'min_gap': 4,
+     'lo': 4000, 'hi': 20000, 'thresh': 0.20, 'min_gap': 3,
      'label': 'FX/Effects',    'icon': '✨', 'color': '#ff6ec7', 'freq': '4k-20kHz'},
     # other 全频段已移除：被 other_low(20-200)+synth(200-4k)+fx(4k-20k) 完全覆盖
 ]

@@ -228,12 +228,18 @@ body{display:flex;flex-direction:column}
 .mixer{display:flex;align-items:center;gap:3px;padding:2px 8px;flex-wrap:wrap;
   border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(5,5,14,.8)}
 .mx-btn{
-  padding:2px 8px;border-radius:5px;font-size:.6rem;font-weight:600;cursor:pointer;
+  padding:2px 6px;border-radius:5px;font-size:.52rem;font-weight:600;cursor:pointer;
   border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
-  color:rgba(255,255,255,.45);transition:all .1s;display:flex;align-items:center;gap:3px}
+  color:rgba(255,255,255,.45);transition:all .1s;display:flex;align-items:center;gap:2px;
+  user-select:none;white-space:nowrap}
 .mx-btn.on{color:#fff}
-.mx-btn .dot{width:6px;height:6px;border-radius:50%}
-.mx-btn.muted{opacity:.3;text-decoration:line-through}
+.mx-btn .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.mx-btn.muted{opacity:.25;text-decoration:line-through}
+.mx-btn.solo{border-color:#ffd60a;color:#ffd60a;background:rgba(255,214,10,.12);
+  box-shadow:0 0 6px rgba(255,214,10,.2)}
+.mx-tool{font-size:.5rem;padding:2px 6px;background:rgba(255,255,255,.03)}
+.mx-sep{font-size:.4rem;color:rgba(255,255,255,.1);user-select:none;margin:0 1px}
+.mx-name{max-width:52px;overflow:hidden;text-overflow:ellipsis}
 .mx-label{font-size:.5rem;color:var(--dim);font-weight:600}
 
 /* ═══ 多轨 DAW ═══ */
@@ -581,6 +587,15 @@ async function loadSong(idx){
     BEATS=d.beats||[];BAR_STARTS=d.bar_starts||[];
     EVENTS=(d.events||[]).filter(e=>e.is_cue!==false).map((e,i)=>({...e,idx:i,el:null}));
     TRACKS_CFG=d.tracks_config||[];STEMS=d.stems||{};
+    // 为每个 tc 注入 _loHz/_hiHz 数值（修复 '3k-8kHz' parseInt bug）
+    TRACKS_CFG.forEach(tc=>{
+      const f=tc.freq||'';
+      const m=f.match(/^([\d.]+)(k?).*?-\s*([\d.]+)(k?)/i);
+      if(m){
+        tc._loHz=parseFloat(m[1])*(m[2]?1000:1);
+        tc._hiHz=parseFloat(m[3])*(m[4]?1000:1);
+      } else { tc._loHz=null; tc._hiHz=null; }
+    });
     GENRE_INFO=d.genre||null;
     window._CURRENT_SONG_DATA = d; // buildRhythmPanel 需要
 
@@ -917,7 +932,7 @@ function drawTracks(){
     let hasActiveHit=false;
     hits.forEach(ht=>{
       const x=(ht/dur)*W;
-      const isCur=Math.abs(ht-ct)<0.12;
+      const isCur=Math.abs(ht-ct)<0.18;
       ctx.strokeStyle=isCur?col:col+'44';
       ctx.lineWidth=isCur?3:0.8;
       if(isCur){ctx.shadowColor=col;ctx.shadowBlur=8;hasActiveHit=true;}
@@ -942,9 +957,11 @@ function drawTracks(){
       a.getByteFrequencyData(fd);
       const SR=actx.sampleRate,binHz=SR/FFT,bins=a.frequencyBinCount;
       let lo=0,hi=bins-1;
-      if(t.tc.freq&&t.tc.freq.includes('-')){
-        lo=Math.max(0,Math.round(parseInt(t.tc.freq)/binHz));
-        hi=Math.min(bins-1,Math.round(parseInt(t.tc.freq.split('-')[1])/binHz));
+      // 从 tracks_config 的 freq 字段精确解析频率范围
+      const tc=t.tc;
+      if(tc._loHz!=null && tc._hiHz!=null){
+        lo=Math.max(0,Math.round(tc._loHz/binHz));
+        hi=Math.min(bins-1,Math.round(tc._hiHz/binHz));
       }
       let sum=0,cnt=0;
       for(let b=lo;b<=hi;b++){sum+=fd[b];cnt++;}
@@ -954,7 +971,7 @@ function drawTracks(){
       ctx.fillStyle=col+'99';
       ctx.fillRect(bx,H-bH,bW,bH);
       ctx.globalAlpha=1;
-      if(e>0.4&&!isMuted)t.flashTimer=4;
+      if(e>0.15&&!isMuted)t.flashTimer=4;
     }
 
     if(hasActiveHit&&!isMuted){
@@ -1524,33 +1541,103 @@ function ss(v,btn){
   document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
 }
-// ── Mute 控制（按轨道展开）──
+// ── Mute 控制（按轨道展开 + 全选/Solo 反选）──
+let _soloTrack = null; // 当前 solo 的轨道名
+
 function buildMixerBar(){
   const bar = document.getElementById('mixerBar');
   if(!bar) return;
-  bar.innerHTML = '<span class="mx-label">Mute:</span>';
+  bar.innerHTML = '';
+  _soloTrack = null;
+
+  // 全选/全消按钮
+  const allBtn = document.createElement('div');
+  allBtn.className = 'mx-btn mx-tool on';
+  allBtn.innerHTML = '✅ 全开';
+  allBtn.onclick = ()=> muteAll(false);
+  bar.appendChild(allBtn);
+
+  const noneBtn = document.createElement('div');
+  noneBtn.className = 'mx-btn mx-tool';
+  noneBtn.innerHTML = '🔇 全关';
+  noneBtn.onclick = ()=> muteAll(true);
+  bar.appendChild(noneBtn);
+
+  // 分隔
+  const sep = document.createElement('span');
+  sep.className = 'mx-sep';
+  sep.textContent = '│';
+  bar.appendChild(sep);
+
+  // 轨道按钮
   TRACKS_CFG.forEach(tc=>{
     trackMuted[tc.name] = false;
     const btn = document.createElement('div');
     btn.className = 'mx-btn on';
+    btn.id = 'mx-'+tc.name;
     btn.dataset.track = tc.name;
     btn.dataset.stem = tc.stem;
-    btn.onclick = ()=> toggleTrack(btn);
-    btn.innerHTML = `<div class="dot" style="background:${tc.color}"></div>${tc.label.split(' ').pop()}`;
+    // 左键 toggle mute，右键 solo
+    btn.onclick = (e)=>{
+      if(_soloTrack) { exitSolo(); return; } // 如果正在 solo，点击任意按钮退出 solo
+      toggleTrack(btn);
+    };
+    btn.oncontextmenu = (e)=>{ e.preventDefault(); soloTrack(tc.name); };
+    btn.innerHTML = `<div class="dot" style="background:${tc.color}"></div><span class="mx-name">${tc.label.split(' ').pop()}</span>`;
     bar.appendChild(btn);
   });
 }
+
 function toggleTrack(btn){
   const name = btn.dataset.track;
   const stem = btn.dataset.stem;
   trackMuted[name] = !trackMuted[name];
   btn.classList.toggle('muted', trackMuted[name]);
   btn.classList.toggle('on', !trackMuted[name]);
-  // 同步 stem 级音频 mute：只有当该 stem 下所有轨都 muted 时才 mute 音频
+  syncStemMute(stem);
+}
+
+function syncStemMute(stem){
   const allTracksOfStem = TRACKS_CFG.filter(t=>t.stem===stem);
   const allMuted = allTracksOfStem.every(t=>trackMuted[t.name]);
   if(STEM_AUDS[stem]) STEM_AUDS[stem].muted = allMuted;
   stemMuted[stem] = allMuted;
+}
+
+function muteAll(muted){
+  _soloTrack = null;
+  TRACKS_CFG.forEach(tc=>{
+    trackMuted[tc.name] = muted;
+    const btn = document.getElementById('mx-'+tc.name);
+    if(btn){ btn.classList.toggle('muted', muted); btn.classList.toggle('on', !muted); btn.classList.remove('solo'); }
+  });
+  Object.keys(STEM_AUDS).forEach(k=>{ STEM_AUDS[k].muted = muted; stemMuted[k] = muted; });
+}
+
+function soloTrack(name){
+  _soloTrack = name;
+  const tc = TRACKS_CFG.find(t=>t.name===name);
+  const soloStem = tc?.stem;
+  TRACKS_CFG.forEach(t=>{
+    const isSolo = (t.name===name);
+    trackMuted[t.name] = !isSolo;
+    const btn = document.getElementById('mx-'+t.name);
+    if(btn){
+      btn.classList.toggle('muted', !isSolo);
+      btn.classList.toggle('on', isSolo);
+      btn.classList.toggle('solo', isSolo);
+    }
+  });
+  // 音频：只开 solo 轨所在的 stem
+  Object.keys(STEM_AUDS).forEach(k=>{
+    STEM_AUDS[k].muted = (k !== soloStem);
+    stemMuted[k] = (k !== soloStem);
+  });
+}
+
+function exitSolo(){
+  _soloTrack = null;
+  muteAll(false);
 }
 function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
 function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
