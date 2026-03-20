@@ -120,32 +120,41 @@ body{display:flex;flex-direction:column}
 
 .hud-center{flex:1;display:flex;align-items:center;justify-content:center;gap:14px;padding:0 16px}
 
-/* 8 BEAT + and 拍 */
-.beat-panel{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
-.beat-title{font-size:.48rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;
-  display:flex;align-items:center;gap:6px}
-.bar-num{color:#ff6ec7;font-weight:700;font-size:.6rem}
-.bgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
-.bx{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;
-  font-size:.82rem;font-weight:800;background:rgba(255,255,255,.025);
-  border:2px solid rgba(255,255,255,.06);color:rgba(255,255,255,.12);transition:all .06s}
-.bx.on{color:#fff;transform:scale(1.12)}
-.bx.kick.on{background:rgba(255,59,48,.35);border-color:#ff3b30;box-shadow:0 0 14px rgba(255,59,48,.6)}
-.bx.snare.on{background:rgba(255,159,10,.3);border-color:#ff9f0a;box-shadow:0 0 10px rgba(255,159,10,.5)}
-.bx.hihat.on{background:rgba(255,214,10,.2);border-color:#ffd60a;box-shadow:0 0 8px rgba(255,214,10,.4)}
-.bx.bar1.on{background:rgba(255,110,199,.3);border-color:#ff6ec7;box-shadow:0 0 14px rgba(255,110,199,.6)}
-/* and 拍细分行 */
-.and-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:2px}
-.ax{height:12px;border-radius:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px}
-.ax-sub{border-radius:2px;background:rgba(255,255,255,.08);transition:background .06s;
-  font-size:.38rem;color:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;
-  overflow:hidden;user-select:none;line-height:1}
-.ax-sub.on1{background:#ff3b30;color:#fff;box-shadow:0 0 4px #ff3b30aa}
-.ax-sub.one{background:#ff9f0a;color:#fff;box-shadow:0 0 4px #ff9f0aaa}
-.ax-sub.onaand{background:#30d158;color:#fff;box-shadow:0 0 4px #30d158aa}
-.ax-sub.ona{background:#bf5af2;color:#fff;box-shadow:0 0 4px #bf5af2aa}
-.beat-mode-btn{font-size:.46rem;cursor:pointer;color:var(--dim);padding:1px 5px;border-radius:4px;
-  border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);transition:.1s;margin-left:4px}
+/* 8 BEAT + and 拍内嵌 */
+.beat-panel{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+.beat-title{font-size:.45rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;
+  display:flex;align-items:center;gap:5px}
+.bar-num{color:#ff6ec7;font-weight:700;font-size:.55rem}
+.bgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+/* bx 内部分上下两层：数字区 + 子拍条 */
+.bx{
+  width:30px;height:40px;border-radius:6px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  background:rgba(255,255,255,.025);
+  border:2px solid rgba(255,255,255,.06);transition:all .06s;
+  overflow:hidden;position:relative;cursor:default;gap:0}
+.bx-num{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-size:.82rem;font-weight:800;color:rgba(255,255,255,.12);transition:color .06s;
+  line-height:1;padding-top:2px}
+/* and拍条区（默认隐藏，开启后展开） */
+.bx-subs{width:100%;display:none;grid-template-columns:repeat(4,1fr);gap:0;height:10px;flex-shrink:0}
+.bx-subs.visible{display:grid}
+.bx-sub{height:10px;transition:background .05s,box-shadow .05s;
+  background:rgba(255,255,255,.07)}
+/* 重要：激活状态 */
+.bx-sub.s0.lit{background:#ff3b30;box-shadow:0 0 6px #ff3b30}
+.bx-sub.s1.lit{background:#ff9f0a;box-shadow:0 0 6px #ff9f0a}
+.bx-sub.s2.lit{background:#30d158;box-shadow:0 0 6px #30d158}
+.bx-sub.s3.lit{background:#bf5af2;box-shadow:0 0 6px #bf5af2}
+
+.bx.on .bx-num{color:#fff}
+.bx.kick.on{border-color:#ff3b30;box-shadow:0 0 14px rgba(255,59,48,.6);background:rgba(255,59,48,.3)}
+.bx.snare.on{border-color:#ff9f0a;box-shadow:0 0 10px rgba(255,159,10,.5);background:rgba(255,159,10,.25)}
+.bx.hihat.on{border-color:#ffd60a;box-shadow:0 0 8px rgba(255,214,10,.4);background:rgba(255,214,10,.15)}
+.bx.bar1.on{border-color:#ff6ec7;box-shadow:0 0 14px rgba(255,110,199,.6);background:rgba(255,110,199,.3)}
+.beat-mode-btn{font-size:.44rem;cursor:pointer;color:var(--dim);padding:1px 5px;border-radius:4px;
+  border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);transition:.1s;margin-left:3px}
 .beat-mode-btn:hover{color:#fff;border-color:rgba(255,255,255,.15)}
 .beat-mode-btn.active{color:#ff6ec7;border-color:#ff6ec7;background:rgba(255,110,199,.1)}
 
@@ -158,22 +167,17 @@ body{display:flex;flex-direction:column}
 .cue-text{font-size:.95rem;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cue-sub{font-size:.58rem;color:rgba(255,255,255,.4);margin-top:1px;font-weight:400}
 
-/* 舞种卡 */
-.dance-panel{width:155px;flex-shrink:0;padding:6px 10px;border-radius:8px;
-  background:rgba(255,110,199,.06);border:1px solid rgba(255,110,199,.15);
-  display:flex;flex-direction:column;justify-content:center;gap:2px}
-.dance-style{font-size:.5rem;color:#ff6ec7;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
-.dance-move-name{font-size:.72rem;font-weight:700;line-height:1.2}
-.dance-move-tip{font-size:.52rem;color:rgba(255,255,255,.45);line-height:1.3}
+/* 舞种卡 - 隐藏 */
+.dance-panel{display:none!important}
 
 /* ═══ HIT 指示器条 ═══ */
-.hit-bar{height:4px;display:flex;flex-shrink:0;background:rgba(0,0,0,.6)}
+.hit-bar{height:3px;display:flex;flex-shrink:0;background:rgba(0,0,0,.6)}
 .hit-seg{flex:1;opacity:0}
 .hit-seg.active{animation:hitSegPulse .35s ease-out forwards}
 @keyframes hitSegPulse{0%{opacity:1}60%{opacity:.7}100%{opacity:0}}
 
 /* ═══ Stem 混音控制条 ═══ */
-.mixer{display:flex;align-items:center;gap:3px;padding:3px 8px;
+.mixer{display:flex;align-items:center;gap:3px;padding:2px 8px;
   border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(5,5,14,.8)}
 .mx-btn{
   padding:2px 8px;border-radius:5px;font-size:.6rem;font-weight:600;cursor:pointer;
@@ -192,35 +196,51 @@ body{display:flex;flex-direction:column}
 .daw::-webkit-scrollbar{width:3px}
 .daw::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
 
+/* ═══ 轨道 Hit 粒子叠加层 ═══ */
+.tr-ripple-canvas{
+  position:absolute;left:130px;right:0;top:0;bottom:0;
+  pointer-events:none;z-index:6;width:calc(100% - 130px);height:100%
+}
+
 /* Stem 分组标题 */
 .stem-hdr{
-  display:flex;align-items:center;gap:8px;padding:3px 10px;
+  display:flex;align-items:center;gap:6px;padding:2px 8px;
   background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.04);
   position:sticky;top:0;z-index:5}
-.stem-hdr-icon{font-size:.78rem}
-.stem-hdr-name{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
+.stem-hdr-icon{font-size:.7rem}
+.stem-hdr-name{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
 
-/* 轨道行 */
-.tr{display:flex;align-items:stretch;height:40px;border-bottom:1px solid rgba(255,255,255,.03);
+/* ═══ 合并轨道行（同 stem 子轨合并显示） ═══ */
+.tr-merged{
+  display:flex;align-items:stretch;border-bottom:1px solid rgba(255,255,255,.03);
+  transition:background .08s;position:relative;overflow:hidden}
+.tr-merged:hover{background:rgba(255,255,255,.015)}
+.tr-merged.flash{background:rgba(255,255,255,.05)}
+.tr-merged.hit-glow{animation:trackHit .35s ease-out}
+/* 每个子轨占一小行 */
+.tr-sub-stack{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.tr-sub-cv{flex:1;display:block;min-height:0}
+/* 单轨道行（不参与合并） */
+.tr{display:flex;align-items:stretch;height:32px;border-bottom:1px solid rgba(255,255,255,.03);
   transition:background .08s;position:relative;overflow:hidden}
 .tr:hover{background:rgba(255,255,255,.015)}
 .tr.flash{background:rgba(255,255,255,.05)}
 .tr.hit-glow{animation:trackHit .35s ease-out}
 @keyframes trackHit{0%{background:rgba(255,255,255,.1)}100%{background:transparent}}
 
-/* ★ 轨道标签 — 加宽加大，确保可读 */
-.tr-label{width:130px;flex-shrink:0;display:flex;align-items:center;gap:6px;
-  padding:0 8px 0 10px;border-right:1px solid rgba(255,255,255,.05);background:rgba(5,5,14,.6);
+/* 轨道标签 */
+.tr-label{width:120px;flex-shrink:0;display:flex;align-items:center;gap:5px;
+  padding:0 6px 0 8px;border-right:1px solid rgba(255,255,255,.05);background:rgba(5,5,14,.6);
   z-index:3}
-.tr-icon{font-size:.88rem;width:18px;text-align:center;flex-shrink:0}
-.tr-name{font-size:.7rem;font-weight:700;line-height:1.2;white-space:nowrap}
-.tr-hz{font-size:.48rem;color:rgba(255,255,255,.32);font-family:'SF Mono',monospace}
+.tr-icon{font-size:.8rem;width:16px;text-align:center;flex-shrink:0}
+.tr-name{font-size:.62rem;font-weight:700;line-height:1.2;white-space:nowrap}
+.tr-hz{font-size:.42rem;color:rgba(255,255,255,.32);font-family:'SF Mono',monospace}
 
 .tr-cv{flex:1;position:relative;overflow:hidden}
 .tr-cv canvas{width:100%;height:100%;display:block}
 
 /* 气泡叠加层（每行独立） */
-.tr-overlay{position:absolute;left:130px;right:0;top:0;bottom:0;pointer-events:none;z-index:8;overflow:hidden}
+.tr-overlay{position:absolute;left:120px;right:0;top:0;bottom:0;pointer-events:none;z-index:8;overflow:hidden}
 .tr-bubble{
   position:absolute;top:50%;transform:translateY(-50%);
   display:inline-flex;align-items:center;gap:5px;
@@ -264,7 +284,7 @@ body{display:flex;flex-direction:column}
 }
 
 /* ═══ 波形进度 ═══ */
-.wf-row{height:48px;background:#020208;border-top:1px solid var(--border);position:relative;flex-shrink:0}
+.wf-row{height:40px;background:#020208;border-top:1px solid var(--border);position:relative;flex-shrink:0}
 #wf-cv{width:100%;height:100%;display:block;cursor:pointer}
 .ph{position:absolute;top:0;bottom:0;width:2px;left:0;background:rgba(255,255,255,.9);
   box-shadow:0 0 8px #fff;pointer-events:none;z-index:5}
@@ -275,7 +295,7 @@ body{display:flex;flex-direction:column}
 /* ═══ 事件右侧栏 ═══ */
 .main{flex:1;display:flex;overflow:hidden}
 .daw-col{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.right-col{width:200px;flex-shrink:0;display:flex;flex-direction:column;
+.right-col{width:160px;flex-shrink:0;display:flex;flex-direction:column;
   border-left:1px solid var(--border);background:rgba(3,3,10,.6);overflow:hidden}
 .right-sec-title{font-size:.46rem;color:var(--dim);text-transform:uppercase;
   letter-spacing:.7px;padding:6px 8px 3px;border-bottom:1px solid var(--border)}
@@ -292,8 +312,8 @@ body{display:flex;flex-direction:column}
 .ev-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
 
 /* ═══ 底部控制栏 ═══ */
-.ctrl{height:42px;background:rgba(3,3,10,.95);border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0}
+.ctrl{height:36px;background:rgba(3,3,10,.95);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 8px;flex-shrink:0}
 .cc{display:flex;align-items:center;gap:5px}
 .cr{display:flex;align-items:center;gap:5px}
 .pbtn{width:34px;height:34px;border-radius:50%;border:none;
@@ -366,22 +386,15 @@ body{display:flex;flex-direction:column}
         <span class="bar-num">第<span id="bnum">—</span>组</span>
         <span class="beat-mode-btn" id="andModeBtn" onclick="toggleAndMode()">1e&a</span>
       </div>
-      <div class="bgrid">
-        <div class="bx" id="bx0">1</div><div class="bx" id="bx1">2</div>
-        <div class="bx" id="bx2">3</div><div class="bx" id="bx3">4</div>
-        <div class="bx" id="bx4">5</div><div class="bx" id="bx5">6</div>
-        <div class="bx" id="bx6">7</div><div class="bx" id="bx7">8</div>
-      </div>
-      <!-- and 拍细分行（默认隐藏，开启后显示） -->
-      <div class="and-grid" id="andGrid" style="display:none">
-        <div class="ax" id="ax0"><div class="ax-sub" id="ax0-0">1</div><div class="ax-sub" id="ax0-1">e</div><div class="ax-sub" id="ax0-2">&</div><div class="ax-sub" id="ax0-3">a</div></div>
-        <div class="ax" id="ax1"><div class="ax-sub" id="ax1-0">1</div><div class="ax-sub" id="ax1-1">e</div><div class="ax-sub" id="ax1-2">&</div><div class="ax-sub" id="ax1-3">a</div></div>
-        <div class="ax" id="ax2"><div class="ax-sub" id="ax2-0">1</div><div class="ax-sub" id="ax2-1">e</div><div class="ax-sub" id="ax2-2">&</div><div class="ax-sub" id="ax2-3">a</div></div>
-        <div class="ax" id="ax3"><div class="ax-sub" id="ax3-0">1</div><div class="ax-sub" id="ax3-1">e</div><div class="ax-sub" id="ax3-2">&</div><div class="ax-sub" id="ax3-3">a</div></div>
-        <div class="ax" id="ax4"><div class="ax-sub" id="ax4-0">1</div><div class="ax-sub" id="ax4-1">e</div><div class="ax-sub" id="ax4-2">&</div><div class="ax-sub" id="ax4-3">a</div></div>
-        <div class="ax" id="ax5"><div class="ax-sub" id="ax5-0">1</div><div class="ax-sub" id="ax5-1">e</div><div class="ax-sub" id="ax5-2">&</div><div class="ax-sub" id="ax5-3">a</div></div>
-        <div class="ax" id="ax6"><div class="ax-sub" id="ax6-0">1</div><div class="ax-sub" id="ax6-1">e</div><div class="ax-sub" id="ax6-2">&</div><div class="ax-sub" id="ax6-3">a</div></div>
-        <div class="ax" id="ax7"><div class="ax-sub" id="ax7-0">1</div><div class="ax-sub" id="ax7-1">e</div><div class="ax-sub" id="ax7-2">&</div><div class="ax-sub" id="ax7-3">a</div></div>
+      <div class="bgrid" id="bgrid">
+        <div class="bx" id="bx0"><div class="bx-num">1</div><div class="bx-subs" id="bs0"><div class="bx-sub s0" id="bs0-0"></div><div class="bx-sub s1" id="bs0-1"></div><div class="bx-sub s2" id="bs0-2"></div><div class="bx-sub s3" id="bs0-3"></div></div></div>
+        <div class="bx" id="bx1"><div class="bx-num">2</div><div class="bx-subs" id="bs1"><div class="bx-sub s0" id="bs1-0"></div><div class="bx-sub s1" id="bs1-1"></div><div class="bx-sub s2" id="bs1-2"></div><div class="bx-sub s3" id="bs1-3"></div></div></div>
+        <div class="bx" id="bx2"><div class="bx-num">3</div><div class="bx-subs" id="bs2"><div class="bx-sub s0" id="bs2-0"></div><div class="bx-sub s1" id="bs2-1"></div><div class="bx-sub s2" id="bs2-2"></div><div class="bx-sub s3" id="bs2-3"></div></div></div>
+        <div class="bx" id="bx3"><div class="bx-num">4</div><div class="bx-subs" id="bs3"><div class="bx-sub s0" id="bs3-0"></div><div class="bx-sub s1" id="bs3-1"></div><div class="bx-sub s2" id="bs3-2"></div><div class="bx-sub s3" id="bs3-3"></div></div></div>
+        <div class="bx" id="bx4"><div class="bx-num">5</div><div class="bx-subs" id="bs4"><div class="bx-sub s0" id="bs4-0"></div><div class="bx-sub s1" id="bs4-1"></div><div class="bx-sub s2" id="bs4-2"></div><div class="bx-sub s3" id="bs4-3"></div></div></div>
+        <div class="bx" id="bx5"><div class="bx-num">6</div><div class="bx-subs" id="bs5"><div class="bx-sub s0" id="bs5-0"></div><div class="bx-sub s1" id="bs5-1"></div><div class="bx-sub s2" id="bs5-2"></div><div class="bx-sub s3" id="bs5-3"></div></div></div>
+        <div class="bx" id="bx6"><div class="bx-num">7</div><div class="bx-subs" id="bs6"><div class="bx-sub s0" id="bs6-0"></div><div class="bx-sub s1" id="bs6-1"></div><div class="bx-sub s2" id="bs6-2"></div><div class="bx-sub s3" id="bs6-3"></div></div></div>
+        <div class="bx" id="bx7"><div class="bx-num">8</div><div class="bx-subs" id="bs7"><div class="bx-sub s0" id="bs7-0"></div><div class="bx-sub s1" id="bs7-1"></div><div class="bx-sub s2" id="bs7-2"></div><div class="bx-sub s3" id="bs7-3"></div></div></div>
       </div>
     </div>
 
@@ -393,10 +406,10 @@ body{display:flex;flex-direction:column}
       </div>
     </div>
 
-    <div class="dance-panel" id="dancePanel">
-      <div class="dance-style" id="danceStyle">💃 舞步建议</div>
-      <div class="dance-move-name" id="danceMoveName">—</div>
-      <div class="dance-move-tip" id="danceMoveTip">播放后显示</div>
+    <div class="dance-panel" id="dancePanel" style="display:none">
+      <div class="dance-style" id="danceStyle"></div>
+      <div class="dance-move-name" id="danceMoveName"></div>
+      <div class="dance-move-tip" id="danceMoveTip"></div>
     </div>
   </div>
 </div>
@@ -440,7 +453,11 @@ body{display:flex;flex-direction:column}
 <!-- 主体：DAW + 右侧事件列表 -->
 <div class="main">
   <div class="daw-col">
-    <div class="daw" id="daw"></div>
+    <!-- Ripple 动画 Canvas（覆盖在 DAW 轨道上） -->
+    <div style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column">
+      <div class="daw" id="daw"></div>
+      <canvas id="ripple-cv" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:7"></canvas>
+    </div>
     <div class="wf-row">
       <canvas id="wf-cv" onclick="seekClick(event,this)"></canvas>
       <div class="ph" id="ph"></div>
@@ -723,8 +740,10 @@ function showSegmentBanner(icon,text,color){
 }
 
 // ══════════════════════════════════════════════════════════════
-// DAW
+// DAW — 同 stem 子轨合并为一个合并行
 // ══════════════════════════════════════════════════════════════
+// MERGE_STEMS: 这些 stem 的子轨合并成1行
+const MERGE_STEMS = new Set(['drums','bass','vocals','other']);
 let trackRows=[];
 
 function buildDAW(){
@@ -737,6 +756,8 @@ function buildDAW(){
   ['drums','bass','guitar','piano','vocals','other'].forEach(stemName=>{
     const tracks=grouped[stemName];
     if(!tracks||!tracks.length)return;
+
+    // 分组标题
     const hdr=document.createElement('div');
     hdr.className='stem-hdr';
     hdr.style.borderLeft=`3px solid ${STEM_COLORS[stemName]}`;
@@ -744,30 +765,81 @@ function buildDAW(){
       <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>`;
     daw.appendChild(hdr);
 
-    tracks.forEach(tc=>{
-      const subData=STEMS[tc.name]||(STEMS[stemName]||{}).sub_bands?.[tc.name]||{};
+    if(MERGE_STEMS.has(stemName) && tracks.length>1){
+      // ── 合并行：所有子轨堆叠在一个行里 ──
+      const mergedH = Math.min(16, Math.max(10, Math.floor(80/tracks.length)));
+      const totalH  = mergedH * tracks.length;
       const row=document.createElement('div');
-      row.className='tr';row.id='tr-'+tc.name;
+      row.className='tr-merged';
+      row.id='tr-'+stemName;
+      row.style.height=totalH+'px';
+
+      // 标签：显示 stem 名 + 子轨缩写
       const label=document.createElement('div');
       label.className='tr-label';
-      label.innerHTML=`<span class="tr-icon">${tc.icon}</span>
-        <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
-        <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
-      const cvWrap=document.createElement('div');
-      cvWrap.className='tr-cv';
-      const cv=document.createElement('canvas');
-      cvWrap.appendChild(cv);
-      row.appendChild(label);row.appendChild(cvWrap);
+      label.style.flexDirection='column';label.style.gap='0';label.style.alignItems='flex-start';
+      label.innerHTML=`<span style="font-size:.6rem;font-weight:700;color:${STEM_COLORS[stemName]};padding:2px 0 0 2px">${STEM_ICONS[stemName]} ${STEM_NAMES[stemName].split(' ')[0]}</span>
+        <div style="display:flex;flex-direction:column;gap:0;width:100%">
+          ${tracks.map(tc=>`<span style="font-size:.38rem;color:${tc.color};padding-left:4px;line-height:1.6">${tc.label.replace(/[^A-Za-z\u4e00-\u9fff ]/g,'').trim().split(' ').slice(-1)[0]||tc.label}</span>`).join('')}
+        </div>`;
+
+      // 子轨 canvas 堆栈
+      const stack=document.createElement('div');
+      stack.className='tr-sub-stack';
+
+      // Overlay 气泡（合并行共用一个）
+      const overlay=document.createElement('div');
+      overlay.className='tr-overlay';
+      const bubble=document.createElement('div');
+      bubble.className='tr-bubble';
+      overlay.appendChild(bubble);
+
+      row.appendChild(label);row.appendChild(stack);row.appendChild(overlay);
       daw.appendChild(row);
-      trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0});
-    });
+
+      tracks.forEach(tc=>{
+        const subData=STEMS[tc.name]||{};
+        const cv=document.createElement('canvas');
+        cv.style.display='block';
+        cv.style.width='100%';
+        cv.style.height=mergedH+'px';
+        cv.style.flexShrink='0';
+        stack.appendChild(cv);
+        trackRows.push({cv,wrap:stack,row,tc,stemName,subData,w:0,h:0,flashTimer:0,bubble,mergedH});
+      });
+    } else {
+      // ── 独立行 ──
+      tracks.forEach(tc=>{
+        const subData=STEMS[tc.name]||{};
+        const row=document.createElement('div');
+        row.className='tr';row.id='tr-'+tc.name;
+        const label=document.createElement('div');
+        label.className='tr-label';
+        label.innerHTML=`<span class="tr-icon">${tc.icon}</span>
+          <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
+          <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
+        const cvWrap=document.createElement('div');
+        cvWrap.className='tr-cv';
+        const cv=document.createElement('canvas');
+        cvWrap.appendChild(cv);
+        const overlay=document.createElement('div');
+        overlay.className='tr-overlay';
+        const bubble=document.createElement('div');
+        bubble.className='tr-bubble';
+        overlay.appendChild(bubble);
+        row.appendChild(label);row.appendChild(cvWrap);row.appendChild(overlay);
+        daw.appendChild(row);
+        trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0,bubble});
+      });
+    }
   });
   resizeTracks();
 }
 
 function resizeTracks(){
   trackRows.forEach(t=>{
-    const w=t.wrap.offsetWidth,h=t.wrap.offsetHeight;
+    const w=t.wrap.offsetWidth;
+    const h=t.mergedH||t.wrap.offsetHeight;
     t.cv.width=w*DPR;t.cv.height=h*DPR;
     t.cv.style.width=w+'px';t.cv.style.height=h+'px';
     t.w=w;t.h=h;
@@ -862,29 +934,249 @@ function drawTracks(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// 分乐器特色粒子动效系统
+// ══════════════════════════════════════════════════════════════
+const rippleCv=document.getElementById('ripple-cv');
+const rippleCtx=rippleCv.getContext('2d');
+let vfxParticles=[]; // 统一粒子池
+let rippleDPR=window.devicePixelRatio||1;
+
+function resizeRippleCv(){
+  const p=rippleCv.parentElement;if(!p)return;
+  const rect=p.getBoundingClientRect();
+  if(!rect.width)return;
+  rippleCv.width=rect.width*rippleDPR;
+  rippleCv.height=rect.height*rippleDPR;
+  rippleCv.style.width=rect.width+'px';
+  rippleCv.style.height=rect.height+'px';
+}
+window.addEventListener('resize',resizeRippleCv);
+setTimeout(resizeRippleCv,300);
+
+// 获取轨道在 canvas 上的 {x, y, trackW}
+function getTrackPos(trackName){
+  // 合并行：先找 stem 级容器，独立行找自己
+  const MERGE_STEMS_SET=new Set(['drums','bass','vocals','other']);
+  const tc=TRACKS_CFG.find(t=>t.name===trackName);
+  const stemName=tc?.stem||trackName;
+  const rowId=MERGE_STEMS_SET.has(stemName)&&TRACKS_CFG.filter(t=>t.stem===stemName).length>1
+    ?'tr-'+stemName:'tr-'+trackName;
+  const row=document.getElementById(rowId);
+  if(!row)return null;
+  const cvRect=rippleCv.getBoundingClientRect();
+  if(!cvRect.width)return null;
+  const rowRect=row.getBoundingClientRect();
+  const dur=TOTAL,ct=getTime();
+  const LABEL_W=120;
+  const trackW=rowRect.width-LABEL_W;
+  const xRatio=dur>0?Math.min(1,ct/dur):0;
+  const x=LABEL_W+xRatio*trackW;
+  const y=rowRect.top-cvRect.top+rowRect.height/2;
+  return {x,y,trackW,rowH:rowRect.height};
+}
+
+/* ── 1. 鼓组：同心冲击波（短矩形爆破）── */
+function spawnDrumShockwave(trackName,color,intensity){
+  const p=getTrackPos(trackName);if(!p)return;
+  const cnt=intensity>0.8?3:intensity>0.5?2:1;
+  for(let i=0;i<cnt;i++){
+    vfxParticles.push({
+      type:'shock',x:p.x,y:p.y,color,
+      r:4,maxR:intensity>0.8?70:50,
+      alpha:0.9,dur:0.5,t0:performance.now()/1000+i*0.055,
+      lineW:2+intensity*2
+    });
+  }
+  // 碎片粒子
+  const frag=intensity>0.6?6:3;
+  for(let i=0;i<frag;i++){
+    const ang=Math.random()*Math.PI*2;
+    const spd=(20+Math.random()*30)*intensity;
+    vfxParticles.push({
+      type:'frag',x:p.x,y:p.y,color,
+      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
+      alpha:1,dur:0.4,t0:performance.now()/1000,
+      r:1.5+Math.random()*1.5
+    });
+  }
+}
+
+/* ── 2. 人声：横向扩散波纹线（向右流动）── */
+function spawnVocalWave(trackName,color,intensity){
+  const p=getTrackPos(trackName);if(!p)return;
+  const waves=intensity>0.7?3:2;
+  for(let i=0;i<waves;i++){
+    vfxParticles.push({
+      type:'wave',x:p.x,y:p.y,color,
+      alpha:0.85,dur:0.65,t0:performance.now()/1000+i*0.07,
+      spread:intensity*60+30,height:p.rowH*0.4
+    });
+  }
+}
+
+/* ── 3. 贝斯：低频纵向脉冲条（上下弹动竖线）── */
+function spawnBassPulse(trackName,color,intensity){
+  const p=getTrackPos(trackName);if(!p)return;
+  const cnt=intensity>0.7?4:2;
+  for(let i=0;i<cnt;i++){
+    vfxParticles.push({
+      type:'pulse',x:p.x+(i-(cnt-1)/2)*14,y:p.y,color,
+      alpha:0.9,dur:0.45,t0:performance.now()/1000+i*0.02,
+      height:p.rowH*0.9*intensity
+    });
+  }
+}
+
+/* ── 4. 吉他/钢琴：弧形弦振动（正弦曲线向右淡出）── */
+function spawnStringArc(trackName,color,intensity){
+  const p=getTrackPos(trackName);if(!p)return;
+  const arcs=intensity>0.6?2:1;
+  for(let i=0;i<arcs;i++){
+    vfxParticles.push({
+      type:'arc',x:p.x,y:p.y,color,
+      alpha:0.8,dur:0.7,t0:performance.now()/1000+i*0.06,
+      amp:p.rowH*(0.35+Math.random()*0.2),
+      freq:3+Math.random()*2,
+      len:p.trackW*0.35
+    });
+  }
+}
+
+/* ── 5. Synth/other：粒子点散射 ── */
+function spawnParticleScatter(trackName,color,intensity){
+  const p=getTrackPos(trackName);if(!p)return;
+  const cnt=Math.round(4+intensity*6);
+  for(let i=0;i<cnt;i++){
+    const ang=(i/cnt)*Math.PI*2+Math.random()*0.3;
+    const spd=(15+Math.random()*25)*intensity;
+    vfxParticles.push({
+      type:'dot',x:p.x,y:p.y,color,
+      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd*0.4,
+      alpha:1,dur:0.55,t0:performance.now()/1000,
+      r:1+Math.random()*2
+    });
+  }
+}
+
+/* ── 分发 ── */
+function spawnVFX(trackName,color,intensity){
+  const tc=TRACKS_CFG.find(t=>t.name===trackName);
+  const stem=tc?.stem||trackName;
+  if(stem==='drums')           spawnDrumShockwave(trackName,color,intensity);
+  else if(stem==='vocals')     spawnVocalWave(trackName,color,intensity);
+  else if(stem==='bass')       spawnBassPulse(trackName,color,intensity);
+  else if(stem==='guitar'||stem==='piano') spawnStringArc(trackName,color,intensity);
+  else                         spawnParticleScatter(trackName,color,intensity);
+}
+
+/* ── 渲染所有粒子 ── */
+function drawRipples(nowMs){
+  const W=rippleCv.width,H=rippleCv.height;
+  rippleCtx.clearRect(0,0,W,H);
+  const t=nowMs/1000;
+  vfxParticles=vfxParticles.filter(p=>{
+    if(t<p.t0)return true;
+    const age=t-p.t0,prog=Math.min(1,age/p.dur);
+    if(prog>=1)return false;
+    const a=p.alpha*(1-prog)*(1-prog);
+    rippleCtx.save();rippleCtx.globalAlpha=a;
+
+    if(p.type==='shock'){
+      const r=(p.r+(p.maxR-p.r)*prog)*rippleDPR;
+      rippleCtx.strokeStyle=p.color;
+      rippleCtx.lineWidth=Math.max(1,p.lineW*(1-prog))*rippleDPR;
+      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=10*rippleDPR*(1-prog);
+      rippleCtx.beginPath();rippleCtx.arc(p.x*rippleDPR,p.y*rippleDPR,r,0,Math.PI*2);
+      rippleCtx.stroke();
+    }
+    else if(p.type==='frag'){
+      const age2=t-p.t0,fx=p.x+p.vx*age2,fy=p.y+p.vy*age2;
+      rippleCtx.fillStyle=p.color;
+      rippleCtx.beginPath();rippleCtx.arc(fx*rippleDPR,fy*rippleDPR,p.r*rippleDPR,0,Math.PI*2);
+      rippleCtx.fill();
+    }
+    else if(p.type==='wave'){
+      const extend=p.spread*prog;
+      rippleCtx.strokeStyle=p.color;
+      rippleCtx.lineWidth=1.5*rippleDPR*(1-prog*0.5);
+      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=6*rippleDPR;
+      rippleCtx.beginPath();
+      const steps=30;
+      for(let i=0;i<=steps;i++){
+        const ix=p.x+i/steps*extend;
+        const iy=p.y+Math.sin(i/steps*Math.PI*3-prog*Math.PI)*p.height*(1-prog*0.5);
+        i===0?rippleCtx.moveTo(ix*rippleDPR,iy*rippleDPR):rippleCtx.lineTo(ix*rippleDPR,iy*rippleDPR);
+      }
+      rippleCtx.stroke();
+      // 镜像下方
+      rippleCtx.beginPath();
+      for(let i=0;i<=steps;i++){
+        const ix=p.x+i/steps*extend;
+        const iy=p.y-Math.sin(i/steps*Math.PI*3-prog*Math.PI)*p.height*(1-prog*0.5)*0.6;
+        i===0?rippleCtx.moveTo(ix*rippleDPR,iy*rippleDPR):rippleCtx.lineTo(ix*rippleDPR,iy*rippleDPR);
+      }
+      rippleCtx.stroke();
+    }
+    else if(p.type==='pulse'){
+      const bh=p.height*(Math.sin(prog*Math.PI));
+      rippleCtx.fillStyle=p.color;
+      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=8*rippleDPR;
+      const pw=4*rippleDPR;
+      rippleCtx.fillRect((p.x-pw/2)*rippleDPR,(p.y-bh/2)*rippleDPR,pw,bh*rippleDPR);
+    }
+    else if(p.type==='arc'){
+      const progress=prog;
+      const visLen=p.len*(1-progress*0.3);
+      rippleCtx.strokeStyle=p.color;
+      rippleCtx.lineWidth=1.8*(1-progress)*rippleDPR;
+      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=5*rippleDPR;
+      rippleCtx.beginPath();
+      const steps=40;
+      const decay=Math.exp(-progress*3);
+      for(let i=0;i<=steps;i++){
+        const ix=p.x+i/steps*visLen;
+        const iy=p.y+Math.sin(i/steps*Math.PI*p.freq)*p.amp*decay;
+        i===0?rippleCtx.moveTo(ix*rippleDPR,iy*rippleDPR):rippleCtx.lineTo(ix*rippleDPR,iy*rippleDPR);
+      }
+      rippleCtx.stroke();
+    }
+    else if(p.type==='dot'){
+      const age2=t-p.t0,fx=p.x+p.vx*age2,fy=p.y+p.vy*age2;
+      rippleCtx.fillStyle=p.color;
+      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=4*rippleDPR;
+      rippleCtx.beginPath();rippleCtx.arc(fx*rippleDPR,fy*rippleDPR,p.r*rippleDPR,0,Math.PI*2);
+      rippleCtx.fill();
+    }
+    rippleCtx.restore();
+    return true;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
 // HIT VFX
 // ══════════════════════════════════════════════════════════════
 let lastFlashT=0;
+let trackLastHit={},trackHitCount={};
 
 function triggerHitVFX(name,color){
-  // HIT 指示条
   const seg=document.getElementById('hs-'+name);
-  if(seg){
-    seg.classList.remove('active');
-    void seg.offsetWidth;
-    seg.classList.add('active');
-  }
+  if(seg){seg.classList.remove('active');void seg.offsetWidth;seg.classList.add('active');}
+  // 分乐器 VFX
   const ct=getTime();
+  const gap=ct-(trackLastHit[name]||0);
+  trackLastHit[name]=ct;
+  trackHitCount[name]=gap<0.55?(trackHitCount[name]||0)+1:1;
+  const intensity=Math.min(1,0.3+trackHitCount[name]*0.22);
+  spawnVFX(name,color,intensity);
+  if(trackHitCount[name]>=3){
+    setTimeout(()=>spawnVFX(name,color,intensity*0.5),60);
+  }
   if(ct-lastFlashT<0.12)return;
   const kickHit=isHitting('kick',ct);
   const snareHit=isHitting('snare',ct);
-  if(kickHit&&snareHit){
-    fireFlash('#ff3b30',0.25);lastFlashT=ct;
-  }else if(kickHit){
-    fireEdge('#ff3b30');
-  }else if(snareHit){
-    fireEdge('#ff9f0a');
-  }
+  if(kickHit&&snareHit){fireFlash('#ff3b30',0.25);lastFlashT=ct;}
+  else if(kickHit){fireEdge('#ff3b30');}
+  else if(snareHit){fireEdge('#ff9f0a');}
 }
 
 function isHitting(n,ct){
@@ -997,31 +1289,34 @@ function triggerEventVisual(ev){
 }
 
 // ══════════════════════════════════════════════════════════════
-// 8拍 + and拍
+// 8拍 + and拍（内嵌格子版）
 // ══════════════════════════════════════════════════════════════
 let curBeat=-1,curBar=-1;
-let andMode=false; // and拍开关
-let curSub=-1;     // 当前子拍索引(0=1 1=e 2=& 3=a)
-let curSubBeat=-1; // 当前属于第几个主拍
+let andMode=false;
+let curSub=-1,curSubBeat=-1;
 
 function toggleAndMode(){
   andMode=!andMode;
-  const btn=document.getElementById('andModeBtn');
-  const grid=document.getElementById('andGrid');
-  btn.classList.toggle('active',andMode);
-  grid.style.display=andMode?'grid':'none';
+  document.getElementById('andModeBtn').classList.toggle('active',andMode);
+  for(let b=0;b<8;b++){
+    document.getElementById('bs'+b)?.classList.toggle('visible',andMode);
+  }
   if(!andMode){
-    // 清空所有 ax子单元
     for(let b=0;b<8;b++)for(let s=0;s<4;s++){
-      document.getElementById(`ax${b}-${s}`)?.classList.remove('on1','one','onaand','ona');
+      document.getElementById(`bs${b}-${s}`)?.classList.remove('lit');
     }
+    curSub=-1;curSubBeat=-1;
   }
 }
 
 function updateBeat(){
   const ct=getTime();
   if(!BEATS.length||ct<MSTART){
-    if(curBeat>=0){document.getElementById('bx'+curBeat)?.classList.remove('on','kick','snare','hihat','bar1');curBeat=-1;}
+    if(curBeat>=0){
+      const old=document.getElementById('bx'+curBeat);
+      if(old) old.className='bx';
+      curBeat=-1;
+    }
     document.getElementById('bnum').textContent='—';return;
   }
   let lo=0,hi=BEATS.length-1;
@@ -1029,36 +1324,31 @@ function updateBeat(){
   const bi=hi;if(bi<0)return;
   const nb=bi%8,nbar=Math.floor(bi/8);
   if(nb!==curBeat){
-    if(curBeat>=0)document.getElementById('bx'+curBeat)?.classList.remove('on','kick','snare','hihat','bar1');
+    if(curBeat>=0){
+      const old=document.getElementById('bx'+curBeat);
+      if(old) old.className='bx';
+    }
     curBeat=nb;
     const el=document.getElementById('bx'+curBeat);if(!el)return;
     el.classList.add('on');
     const bt=BEATS[bi];
-    if(nb===0)el.classList.add('bar1');
-    else if(isHitting('kick',bt))el.classList.add('kick');
-    else if(isHitting('snare',bt))el.classList.add('snare');
+    if(nb===0) el.classList.add('bar1');
+    else if(isHitting('kick',bt)) el.classList.add('kick');
+    else if(isHitting('snare',bt)) el.classList.add('snare');
   }
-  if(nbar!==curBar){
-    curBar=nbar;
-    document.getElementById('bnum').textContent=curBar+1;
-  }
-
-  // and拍细分
+  if(nbar!==curBar){curBar=nbar;document.getElementById('bnum').textContent=curBar+1;}
+  // and 拍细分（内嵌底部色条）
   if(andMode&&BEATS.length>1){
-    // 用当前拍到下一拍的实际间距（更精确，支持非匀速 BPM）
     const nextBeat=BEATS[Math.min(bi+1,BEATS.length-1)];
-    const subDur=(nextBeat-BEATS[bi])/4; // 每主拍 → 4 子拍 (1-e-&-a)
+    const subDur=Math.max(0.01,(nextBeat-BEATS[bi])/4);
     const elapsed=ct-BEATS[bi];
     const ns=Math.max(0,Math.min(3,Math.floor(elapsed/subDur)));
     if(ns!==curSub||nb!==curSubBeat){
-      // 清除上一个高亮
-      if(curSubBeat>=0&&curSubBeat<8&&curSub>=0){
-        const cls=['on1','one','onaand','ona'][curSub];
-        document.getElementById(`ax${curSubBeat}-${curSub}`)?.classList.remove(cls);
+      if(curSubBeat>=0&&curSub>=0){
+        document.getElementById(`bs${curSubBeat}-${curSub}`)?.classList.remove('lit');
       }
       curSub=ns;curSubBeat=nb;
-      const cls=['on1','one','onaand','ona'][ns];
-      document.getElementById(`ax${nb}-${ns}`)?.classList.add(cls);
+      document.getElementById(`bs${nb}-${ns}`)?.classList.add('lit');
     }
   }
 }
@@ -1095,8 +1385,9 @@ function updateHead(){
 // ══════════════════════════════════════════════════════════════
 // 主循环
 // ══════════════════════════════════════════════════════════════
-function loop(){
+function loop(nowMs){
   drawTracks();updateHead();updateBeat();updateCue();updateDance();
+  drawRipples(nowMs||performance.now());
   requestAnimationFrame(loop);
 }
 
