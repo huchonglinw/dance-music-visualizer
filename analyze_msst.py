@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-analyze_msst.py — AI 6轨分离 + 子频段双重分析 (14轨版)
+analyze_msst.py — AI 6轨分离 + 子频段双重分析 (13轨版)
 
-轨道结构 (14轨):
-  鼓组 4子轨  : kick / snare / toms / cymbals     (drums AI轨 → 频段滤波)
+轨道结构 (13轨):
+  鼓组 3子轨  : kick / snare / cymbals            (drums AI轨 → 频段滤波)
   人声 3子轨  : vocal_lo / vocal_mid / vocal_hi   (vocals AI轨 → 频段滤波)
   贝斯 2子轨  : bass_sub / bass_mid               (bass AI轨 → 频段滤波)
   独立 3轨    : guitar / piano / other
@@ -130,21 +130,19 @@ def analyze_full_track(y_stem, sr, n_fft, hop, dur):
 #   type='full'  → 直接全频段
 # ══════════════════════════════════════════════════════════════
 TRACKS_CONFIG = [
-    # ── 鼓组 4 子轨 ──
+    # ── 鼓组 3 子轨（kick/snare 分界200Hz无重叠，cymbals 3k+）──
     {'name': 'kick',      'stem': 'drums',  'type': 'band',
      'lo': 30,   'hi': 200,   'thresh': 0.50, 'min_gap': 5,
      'label': 'Kick 底鼓',     'icon': '🥁', 'color': '#ff3b30', 'freq': '30-200Hz'},
     {'name': 'snare',     'stem': 'drums',  'type': 'band',
-     'lo': 200,  'hi': 1500,  'thresh': 0.50, 'min_gap': 6,
-     'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': '200-1500Hz'},
-    {'name': 'toms',      'stem': 'drums',  'type': 'band',
-     'lo': 80,   'hi': 400,   'thresh': 0.45, 'min_gap': 8,
-     'label': 'Toms 嗵鼓',     'icon': '🪘', 'color': '#0a84ff', 'freq': '80-400Hz'},
+     'lo': 200,  'hi': 3000,  'thresh': 0.50, 'min_gap': 6,
+     'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': '200-3kHz'},
+    # toms 已移除：80-400Hz 完全被 kick(30-200)+snare(200-3k) 覆盖
     {'name': 'cymbals',   'stem': 'drums',  'type': 'band',
      'lo': 3000, 'hi': 18000, 'thresh': 0.38, 'min_gap': 3,
      'label': 'Cymbals 镲片',  'icon': '🎶', 'color': '#ffd60a', 'freq': '3k-18kHz'},
 
-    # ── 人声 3 子轨 ──
+    # ── 人声 3 子轨（同 stem 内无重叠：80-500 / 500-2k / 2k-8k）──
     {'name': 'vocal_lo',  'stem': 'vocals', 'type': 'band',
      'lo': 80,   'hi': 500,   'thresh': 0.42, 'min_gap': 6,
      'label': 'Vocal 低频',    'icon': '🎤', 'color': '#1ed760', 'freq': '80-500Hz'},
@@ -155,7 +153,7 @@ TRACKS_CONFIG = [
      'lo': 2000, 'hi': 8000,  'thresh': 0.40, 'min_gap': 4,
      'label': 'Vocal 高频',    'icon': '🗣', 'color': '#5ade83', 'freq': '2k-8kHz'},
 
-    # ── 贝斯 2 子轨 ──
+    # ── 贝斯 2 子轨（同 stem 内无重叠：20-120 / 120-600）──
     {'name': 'bass_sub',  'stem': 'bass',   'type': 'band',
      'lo': 20,   'hi': 120,   'thresh': 0.50, 'min_gap': 5,
      'label': 'Bass Sub 超低频', 'icon': '🔈', 'color': '#0040ff', 'freq': '20-120Hz'},
@@ -163,13 +161,13 @@ TRACKS_CONFIG = [
      'lo': 120,  'hi': 600,   'thresh': 0.45, 'min_gap': 5,
      'label': 'Bass Mid 中低频', 'icon': '🎸', 'color': '#0a84ff', 'freq': '120-600Hz'},
 
-    # ── 独立乐器轨 ──
+    # ── 独立乐器轨（AI 分离后全频段）──
     {'name': 'guitar',    'stem': 'guitar', 'type': 'full',
      'label': 'Guitar 吉他',   'icon': '🎸', 'color': '#ff6b35', 'freq': 'AI全频'},
     {'name': 'piano',     'stem': 'piano',  'type': 'full',
      'label': 'Piano 钢琴',    'icon': '🎹', 'color': '#bf5af2', 'freq': 'AI全频'},
 
-    # ── Other 拆分：低频合成 + 高频效果 ──
+    # ── Other 拆分（同 stem 内无重叠：200-4k / 4k-20k / 全频段独立检测）──
     {'name': 'synth',     'stem': 'other',  'type': 'band',
      'lo': 200,  'hi': 4000,  'thresh': 0.42, 'min_gap': 5,
      'label': 'Synth 合成器',  'icon': '🌊', 'color': '#a78bfa', 'freq': '200-4kHz'},
@@ -283,6 +281,11 @@ def analyze_6stems(stems_dir, original_mp3):
         'other':  f'songs_audio/{slug}_stems6/other.mp3',
     }
 
+    # ── 节奏范式分析（rhythm_pattern）──
+    rhythm_pattern = analyze_rhythm_pattern(
+        stems_result, beat_times, bpm, dur
+    )
+
     return {
         'song': song,
         'artist': artist,
@@ -297,9 +300,121 @@ def analyze_6stems(stems_dir, original_mp3):
         'beats': [round(t, 3) for t in beat_times],
         'bar_starts': [round(t, 3) for t in bar_starts],
         'events': events,
+        'rhythm_pattern': rhythm_pattern,
         'separation_model': 'htdemucs_6s (6-stem AI)',
         'tracks_config': tracks_out,
         'stems': stems_result,
+    }
+
+
+def analyze_rhythm_pattern(stems, beat_times, bpm, dur):
+    """
+    分析节奏范式：kick/snare/cymbals 在 8 beat 中的落点规律。
+    返回人类可读的节奏描述 + 数据。
+    """
+    if not beat_times or len(beat_times) < 8:
+        return {'summary': '节拍数据不足', 'details': [], 'kick_pattern': '', 'snare_pattern': ''}
+
+    # 量化每个 hit 到最近的 beat（beat_idx % 8 → 第几拍）
+    beat_arr = np.array(beat_times)
+    beat_period = 60.0 / bpm if bpm > 0 else 0.5
+
+    def quantize_hits(track_name):
+        """返回每个 hit 对应的 beat 位置 (0~7)"""
+        hits = stems.get(track_name, {}).get('hits', [])
+        if not hits:
+            return []
+        positions = []
+        for h in hits:
+            # 找最近 beat
+            dists = np.abs(beat_arr - h)
+            nearest = np.argmin(dists)
+            # 只接受在半拍范围内的
+            if dists[nearest] < beat_period * 0.4:
+                positions.append(nearest % 8)
+        return positions
+
+    kick_pos = quantize_hits('kick')
+    snare_pos = quantize_hits('snare')
+    cymbal_pos = quantize_hits('cymbals')
+
+    # 统计每个位置出现频率
+    def count_positions(positions):
+        counts = [0] * 8
+        for p in positions:
+            counts[p] += 1
+        total = max(1, sum(counts))
+        return [round(c / total, 2) for c in counts]
+
+    kick_dist = count_positions(kick_pos)
+    snare_dist = count_positions(snare_pos)
+    cymbal_dist = count_positions(cymbal_pos)
+
+    # 生成 pattern 字符串（X=强 x=弱 .=无）
+    def make_pattern(dist, thresh_strong=0.15, thresh_weak=0.05):
+        return ''.join('X' if d >= thresh_strong else ('x' if d >= thresh_weak else '.') for d in dist)
+
+    kick_pat = make_pattern(kick_dist)
+    snare_pat = make_pattern(snare_dist)
+    cymbal_pat = make_pattern(cymbal_dist)
+
+    # 自然语言描述
+    details = []
+    # Kick 分析
+    strong_kicks = [i + 1 for i, d in enumerate(kick_dist) if d >= 0.15]
+    if strong_kicks:
+        if set(strong_kicks) <= {1, 3, 5, 7}:
+            details.append('🥁 底鼓落在重拍（1/3/5/7）— 四四拍驱动')
+        elif set(strong_kicks) <= {1, 5}:
+            details.append('🥁 底鼓落在1/5拍 — 半拍律动')
+        else:
+            details.append(f'🥁 底鼓主要在第 {"/".join(map(str, strong_kicks))} 拍')
+
+    # Snare 分析
+    strong_snares = [i + 1 for i, d in enumerate(snare_dist) if d >= 0.15]
+    if strong_snares:
+        if set(strong_snares) <= {2, 4, 6, 8} or set(strong_snares) <= {3, 7}:
+            details.append('💥 军鼓落在反拍 — Backbeat 节奏')
+        elif set(strong_snares) == {3, 7}:
+            details.append('💥 军鼓落在3/7拍 — 标准 Backbeat')
+        else:
+            details.append(f'💥 军鼓主要在第 {"/".join(map(str, strong_snares))} 拍')
+
+    # Cymbal 分析
+    strong_cymbals = [i + 1 for i, d in enumerate(cymbal_dist) if d >= 0.10]
+    if len(strong_cymbals) >= 6:
+        details.append('🎶 镲片持续 — Hi-Hat 恒定律动')
+    elif strong_cymbals:
+        details.append(f'🎶 镲片重音在第 {"/".join(map(str, strong_cymbals))} 拍')
+
+    # 综合律动类型判断
+    summary = ''
+    if kick_pat in ['X.X.X.X.', 'X...X...']:
+        if snare_pat in ['..X...X.', '.X..X...', '..X...X.']:
+            summary = 'Boom-Bap 律动（底鼓正拍+军鼓反拍）'
+        else:
+            summary = '正拍驱动律动'
+    elif kick_dist[0] >= 0.15 and sum(kick_dist[1:]) > kick_dist[0] * 3:
+        summary = '切分底鼓律动（Syncopation）'
+    else:
+        summary = '自由律动'
+
+    if not details:
+        details.append('节奏特征不明显，可能是慵懒/自由律动风格')
+
+    print(f"   🎯 节奏范式: {summary}", file=sys.stderr)
+    for d in details:
+        print(f"      {d}", file=sys.stderr)
+
+    return {
+        'summary': summary,
+        'details': details,
+        'kick_pattern': kick_pat,
+        'snare_pattern': snare_pat,
+        'cymbal_pattern': cymbal_pat,
+        'kick_distribution': kick_dist,
+        'snare_distribution': snare_dist,
+        'bpm': bpm,
     }
 
 

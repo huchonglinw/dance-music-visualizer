@@ -32,7 +32,7 @@ def slugify(name):
     name = re.sub(r'[\s]+', '_', name.strip())
     return name[:40].lower().strip('_')
 
-_DEVNULL = open(os.devnull, 'wb')
+_DEVNULL = subprocess.DEVNULL  # 线程安全，不使用 open(os.devnull)
 
 def run(cmd, capture=False, **kw):
     """capture=True 仅用于需要读取输出的命令（小输出），默认丢弃 stdout/stderr"""

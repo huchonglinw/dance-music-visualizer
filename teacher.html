@@ -125,6 +125,26 @@ body{display:flex;flex-direction:column}
 .hud-switch.on .hud-switch-dot{background:rgba(255,214,10,.35)}
 .hud-switch.on .hud-switch-dot::after{background:#ffd60a;left:12px;box-shadow:0 0 4px #ffd60a}
 
+/* 节奏范式面板 */
+.rhythm-panel{
+  display:flex;flex-direction:column;gap:3px;padding:4px 0;max-width:220px;min-width:140px
+}
+.rhythm-title{font-size:.5rem;color:rgba(255,255,255,.35);font-weight:700;letter-spacing:.5px}
+.rhythm-summary{font-size:.55rem;color:#ffd60a;font-weight:700;line-height:1.3}
+.rhythm-details{display:flex;flex-direction:column;gap:1px}
+.rhythm-detail{font-size:.44rem;color:rgba(255,255,255,.5);line-height:1.3}
+.rhythm-grid{display:flex;gap:2px;margin-top:2px}
+.rhythm-beat{
+  width:12px;height:18px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  font-size:.36rem;color:rgba(255,255,255,.2);line-height:1
+}
+.rhythm-beat-num{font-size:.32rem;color:rgba(255,255,255,.15)}
+.rhythm-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.06)}
+.rhythm-dot.kick{background:#ff3b30}
+.rhythm-dot.snare{background:#ff9f0a}
+.rhythm-dot.both{background:linear-gradient(135deg,#ff3b30,#ff9f0a)}
+.rhythm-dot.weak{opacity:.35}
+
 /* stem-hdr 展开/收起按钮 */
 .stem-hdr{cursor:default}
 .stem-hdr-toggle{
@@ -435,8 +455,14 @@ body{display:flex;flex-direction:column}
     </div>
   </div>
 
-  <!-- 右上角工具开关 -->
+  <!-- 右上角：音效开关 + 节奏范式面板 -->
   <div class="hud-right">
+    <div class="rhythm-panel" id="rhythmPanel">
+      <div class="rhythm-title">🎯 节奏范式</div>
+      <div class="rhythm-summary" id="rhythmSummary">加载中...</div>
+      <div class="rhythm-details" id="rhythmDetails"></div>
+      <div class="rhythm-grid" id="rhythmGrid"></div>
+    </div>
     <div class="hud-switch" id="sfxSwitch" onclick="toggleSFX()" title="乐器音效（试验性）">
       <span class="hud-switch-icon">🔔</span>
       <span class="hud-switch-label">音效</span>
@@ -449,7 +475,6 @@ body{display:flex;flex-direction:column}
 <div class="hit-bar" id="hitBar">
   <div class="hit-seg" id="hs-kick" style="background:#ff3b30"></div>
   <div class="hit-seg" id="hs-snare" style="background:#ff9f0a"></div>
-  <div class="hit-seg" id="hs-toms" style="background:#ffcc00"></div>
   <div class="hit-seg" id="hs-cymbals" style="background:#ffd60a"></div>
   <div class="hit-seg" id="hs-vocal_lo" style="background:#1ed760"></div>
   <div class="hit-seg" id="hs-vocal_mid" style="background:#30d158"></div>
@@ -588,6 +613,7 @@ async function loadSong(idx){
     EVENTS=(d.events||[]).filter(e=>e.is_cue!==false).map((e,i)=>({...e,idx:i,el:null}));
     TRACKS_CFG=d.tracks_config||[];STEMS=d.stems||{};
     GENRE_INFO=d.genre||null;
+    window._CURRENT_SONG_DATA = d; // buildRhythmPanel 需要
 
     document.getElementById('cb').textContent=BPM+' BPM';
     document.getElementById('ck').textContent=d.key||'—';
@@ -612,6 +638,7 @@ async function loadSong(idx){
 
     buildDAW();buildLog();drawStaticWF();
     buildDanceMoves();
+    buildRhythmPanel();
     updateSongListActive();
   }catch(e){console.warn('loadSong:',e);}
 }
@@ -767,9 +794,55 @@ function showSegmentBanner(icon,text,color){
 }
 
 // ══════════════════════════════════════════════════════════════
+// 节奏范式面板（右上角）
+// ══════════════════════════════════════════════════════════════
+let _rhythmData = null;
+
+function buildRhythmPanel(){
+  _rhythmData = null;
+  const panel = document.getElementById('rhythmPanel');
+  if(!panel) return;
+  const rp = window._CURRENT_SONG_DATA?.rhythm_pattern;
+  if(!rp || !rp.summary){
+    document.getElementById('rhythmSummary').textContent = '暂无节奏数据';
+    document.getElementById('rhythmDetails').innerHTML = '';
+    document.getElementById('rhythmGrid').innerHTML = '';
+    return;
+  }
+  _rhythmData = rp;
+  document.getElementById('rhythmSummary').textContent = rp.summary;
+
+  // 详情列表
+  const detailsEl = document.getElementById('rhythmDetails');
+  detailsEl.innerHTML = (rp.details||[]).map(d =>
+    `<div class="rhythm-detail">${d}</div>`
+  ).join('');
+
+  // 8拍节奏网格
+  const gridEl = document.getElementById('rhythmGrid');
+  const kickPat = rp.kick_pattern || '........';
+  const snarePat = rp.snare_pattern || '........';
+  let html = '';
+  for(let i=0;i<8;i++){
+    const k = kickPat[i], s = snarePat[i];
+    let dotClass = '';
+    if(k==='X' && s==='X') dotClass = 'both';
+    else if(k==='X') dotClass = 'kick';
+    else if(s==='X') dotClass = 'snare';
+    else if(k==='x') dotClass = 'kick weak';
+    else if(s==='x') dotClass = 'snare weak';
+    html += `<div class="rhythm-beat">
+      <div class="rhythm-beat-num">${i+1}</div>
+      <div class="rhythm-dot ${dotClass}"></div>
+    </div>`;
+  }
+  gridEl.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════
 // DAW — 同 stem 子轨合并为一个合并行（可点击展开）
 // ══════════════════════════════════════════════════════════════
-// MERGE_STEMS: drums 子轨（kick/snare/toms/cymbals）必须独立行，才能看清
+// MERGE_STEMS: drums 子轨（kick/snare/cymbals）必须独立行
 // 只有 bass/vocals/other 的子轨可选择合并
 const MERGE_STEMS = new Set(['bass','vocals']); // other 子轨（synth/fx/other）默认展开独立行
 let trackRows=[];
@@ -1266,7 +1339,6 @@ function playSFX(trackName, stemName){
     if(trackName==='kick')          sfxKick();
     else if(trackName==='snare')    sfxSnare();
     else if(trackName==='cymbals')  sfxCymbals();
-    else if(trackName==='toms')     sfxSnare(0.25);
     else if(stemName==='bass')      sfxBass();
     else if(stemName==='vocals')    sfxVocal();
     else if(stemName==='guitar')    sfxString();
@@ -1413,7 +1485,7 @@ function triggerEventVisual(ev){
   }
   // 乐器进入 → 对应轨道气泡
   const trackMap={
-    kick:'kick',snare:'snare',cymbals:'cymbals',toms:'toms',
+    kick:'kick',snare:'snare',cymbals:'cymbals',
     bass_in:'bass',vocal:'vocals',guitar:'guitar',piano:'piano',bass:'bass'
   };
   const trackName=trackMap[type]||type;
