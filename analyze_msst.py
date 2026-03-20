@@ -139,7 +139,7 @@ TRACKS_CONFIG = [
      'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': '200-1500Hz'},
     {'name': 'toms',      'stem': 'drums',  'type': 'band',
      'lo': 80,   'hi': 400,   'thresh': 0.45, 'min_gap': 8,
-     'label': 'Toms 嗵鼓',     'icon': '🪘', 'color': '#ffcc00', 'freq': '80-400Hz'},
+     'label': 'Toms 嗵鼓',     'icon': '🪘', 'color': '#0a84ff', 'freq': '80-400Hz'},
     {'name': 'cymbals',   'stem': 'drums',  'type': 'band',
      'lo': 3000, 'hi': 18000, 'thresh': 0.38, 'min_gap': 3,
      'label': 'Cymbals 镲片',  'icon': '🎶', 'color': '#ffd60a', 'freq': '3k-18kHz'},

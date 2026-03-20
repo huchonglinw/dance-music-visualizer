@@ -136,12 +136,14 @@ body{display:flex;flex-direction:column}
 .bx.bar1.on{background:rgba(255,110,199,.3);border-color:#ff6ec7;box-shadow:0 0 14px rgba(255,110,199,.6)}
 /* and 拍细分行 */
 .and-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:2px}
-.ax{height:10px;border-radius:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;opacity:.5}
-.ax-sub{border-radius:2px;background:rgba(255,255,255,.08);transition:background .04s}
-.ax-sub.on1{background:#ff3b30cc} /* 1 */
-.ax-sub.one{background:#ff9f0aaa} /* e */
-.ax-sub.onaand{background:#30d158aa} /* & */
-.ax-sub.ona{background:#bf5af2aa} /* a */
+.ax{height:12px;border-radius:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px}
+.ax-sub{border-radius:2px;background:rgba(255,255,255,.08);transition:background .06s;
+  font-size:.38rem;color:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;
+  overflow:hidden;user-select:none;line-height:1}
+.ax-sub.on1{background:#ff3b30;color:#fff;box-shadow:0 0 4px #ff3b30aa}
+.ax-sub.one{background:#ff9f0a;color:#fff;box-shadow:0 0 4px #ff9f0aaa}
+.ax-sub.onaand{background:#30d158;color:#fff;box-shadow:0 0 4px #30d158aa}
+.ax-sub.ona{background:#bf5af2;color:#fff;box-shadow:0 0 4px #bf5af2aa}
 .beat-mode-btn{font-size:.46rem;cursor:pointer;color:var(--dim);padding:1px 5px;border-radius:4px;
   border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);transition:.1s;margin-left:4px}
 .beat-mode-btn:hover{color:#fff;border-color:rgba(255,255,255,.15)}
@@ -1043,13 +1045,13 @@ function updateBeat(){
 
   // and拍细分
   if(andMode&&BEATS.length>1){
-    const beatDur=BEATS[Math.min(bi+1,BEATS.length-1)]-BEATS[Math.max(bi-1,0)];
-    const subDur=(BEATS[1]-BEATS[0])/4; // 每个主拍分成 4 个子拍
-    const beatStart=BEATS[bi];
-    const elapsed=ct-beatStart;
-    const ns=Math.min(3,Math.floor(elapsed/subDur)); // 0=1,1=e,2=&,3=a
+    // 用当前拍到下一拍的实际间距（更精确，支持非匀速 BPM）
+    const nextBeat=BEATS[Math.min(bi+1,BEATS.length-1)];
+    const subDur=(nextBeat-BEATS[bi])/4; // 每主拍 → 4 子拍 (1-e-&-a)
+    const elapsed=ct-BEATS[bi];
+    const ns=Math.max(0,Math.min(3,Math.floor(elapsed/subDur)));
     if(ns!==curSub||nb!==curSubBeat){
-      // 清除上一个
+      // 清除上一个高亮
       if(curSubBeat>=0&&curSubBeat<8&&curSub>=0){
         const cls=['on1','one','onaand','ona'][curSub];
         document.getElementById(`ax${curSubBeat}-${curSub}`)?.classList.remove(cls);

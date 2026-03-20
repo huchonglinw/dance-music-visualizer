@@ -822,7 +822,7 @@
       "name": "toms",
       "label": "Toms 嗵鼓",
       "icon": "🪘",
-      "color": "#ffcc00",
+      "color": "#0a84ff",
       "freq": "80-400Hz"
     },
     {
@@ -870,7 +870,7 @@
       "name": "bass_mid",
       "label": "Bass Mid 中低频",
       "icon": "🎸",
-      "color": "#0a84ff",
+      "color": "#5590ff",
       "freq": "120-600Hz"
     },
     {
