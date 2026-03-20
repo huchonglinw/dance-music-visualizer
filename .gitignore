@@ -1,2 +1,7 @@
 separated/
 songs/
+Music-Source-Separation-Training/
+models/
+tmp_drumsep_in/
+tmp_drumsep_out/
+songs_audio/*/drumsep/

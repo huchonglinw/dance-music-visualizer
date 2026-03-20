@@ -385,6 +385,11 @@ body{display:flex;flex-direction:column}
 <audio id="aud-piano" src="songs_audio/stems6/piano.mp3" preload="auto" crossorigin="anonymous"></audio>
 <audio id="aud-vocals" src="songs_audio/stems6/vocals.mp3" preload="auto" crossorigin="anonymous"></audio>
 <audio id="aud-other" src="songs_audio/stems6/other.mp3" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-kick" src="" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-snare" src="" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-toms" src="" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-hh" src="" preload="auto" crossorigin="anonymous"></audio>
+<audio id="aud-cymbals" src="" preload="auto" crossorigin="anonymous"></audio>
 
 <!-- 选歌抽屉 -->
 <div class="song-drawer" id="songDrawer" onclick="closeSongDrawer(event)">
@@ -530,8 +535,13 @@ const STEM_AUDS = {
   piano:  document.getElementById('aud-piano'),
   vocals: document.getElementById('aud-vocals'),
   other:  document.getElementById('aud-other'),
+  kick:     document.getElementById('aud-kick'),
+  snare:    document.getElementById('aud-snare'),
+  toms:     document.getElementById('aud-toms'),
+  hh:       document.getElementById('aud-hh'),
+  cymbals:  document.getElementById('aud-cymbals'),
 };
-const stemMuted = {drums:false,bass:false,guitar:false,piano:false,vocals:false,other:false};
+const stemMuted = {drums:false,bass:false,guitar:false,piano:false,vocals:false,other:false,kick:false,snare:false,toms:false,hh:false,cymbals:false};
 // 按轨道 mute（映射到 stem 级别的实际 mute）
 const trackMuted = {};
 let actx,stemAnalysers={},stemSrcs={};
@@ -539,28 +549,8 @@ const FFT=4096;
 let _ready=false;
 const DPR=devicePixelRatio||1;
 
-// ── 每轨 4 阶级联带通滤波器 + Gain 节点（~48dB/octave 陡峭截止）──
+// ── 每轨独立 audio 元素 + GainNode（无滤波器，DrumSep AI 分离）──
 let trackGains = {};   // trackName → GainNode
-let trackFilters = {}; // trackName → { hpfs:[], lpfs:[], gain }
-
-// Butterworth 4th-order Q 值序列（两对二阶节 = 四阶）
-const BW_Q = [0.5412, 1.3065, 0.5412, 1.3065];
-
-function createFilterChain(ctx, type, freq, stages){
-  const filters = [];
-  for(let i = 0; i < stages; i++){
-    const f = ctx.createBiquadFilter();
-    f.type = type;
-    f.frequency.value = freq;
-    f.Q.value = BW_Q[i % BW_Q.length];
-    filters.push(f);
-  }
-  // 串联
-  for(let i = 0; i < filters.length - 1; i++){
-    filters[i].connect(filters[i+1]);
-  }
-  return filters;
-}
 
 function initAudio(){
   if(_ready)return;
@@ -568,81 +558,52 @@ function initAudio(){
     actx=new(window.AudioContext||window.webkitAudioContext)();
     AUD.volume=0;AUD.muted=true;
 
-    // 按 stem 分组 TRACKS_CFG
-    const stemTracks = {};
-    TRACKS_CFG.forEach(tc=>{
-      if(!stemTracks[tc.stem]) stemTracks[tc.stem]=[];
-      stemTracks[tc.stem].push(tc);
-    });
+    // 鼓组子轨映射：如果有独立 kick/snare/toms/hh/cymbals 音频
+    // 则鼓组子轨直接使用独立音频源，drums 主轨 mute（避免重复）
+    const hasDrumSep = !!(STEM_AUDS.kick?.src && STEM_AUDS.kick.src !== '');
 
-    const FILTER_ORDER = 4; // 4阶 = ~48dB/octave
+    // 收集所有需要接入的 stem 名称
+    const allStems = ['drums','bass','guitar','piano','vocals','other'];
+    if(hasDrumSep) allStems.push('kick','snare','toms','hh','cymbals');
 
-    ['drums','bass','guitar','piano','vocals','other'].forEach(stemName=>{
-      const src = actx.createMediaElementSource(STEM_AUDS[stemName]);
+    allStems.forEach(stemName=>{
+      const aud = STEM_AUDS[stemName];
+      if(!aud || !aud.src) return;
+
+      const src = actx.createMediaElementSource(aud);
       stemSrcs[stemName] = src;
 
-      // Analyser（用于实时频谱显示）
       const analyser = actx.createAnalyser();
       analyser.fftSize=FFT; analyser.smoothingTimeConstant=0.72;
       analyser.minDecibels=-95; analyser.maxDecibels=-5;
       stemAnalysers[stemName] = analyser;
 
-      const tracks = stemTracks[stemName] || [];
-      const hasBandTracks = tracks.some(tc => tc._loHz != null && tc._hiHz != null);
+      const gain = actx.createGain();
+      gain.gain.value = 1;
 
-      if(hasBandTracks && tracks.length > 1){
-        // ── 多轨 stem：每轨 4阶HPF + 4阶LPF → Gain → merger ──
-        const merger = actx.createGain();
-        merger.gain.value = 1;
+      // 如果有 DrumSep，drums 主轨静音（避免和子轨重复）
+      if(hasDrumSep && stemName === 'drums'){
+        gain.gain.value = 0;
+      }
 
-        tracks.forEach(tc => {
-          if(tc._loHz != null && tc._hiHz != null){
-            // 4 阶高通 + 4 阶低通 = ~48dB/octave 截止
-            const hpfs = createFilterChain(actx, 'highpass', tc._loHz, FILTER_ORDER);
-            const lpfs = createFilterChain(actx, 'lowpass',  tc._hiHz, FILTER_ORDER);
-            const gain = actx.createGain();
-            gain.gain.value = 1;
+      src.connect(gain);
+      gain.connect(analyser);
+      analyser.connect(actx.destination);
 
-            // 路由：src → HPF[0]→...→HPF[3] → LPF[0]→...→LPF[3] → gain → merger
-            src.connect(hpfs[0]);
-            hpfs[hpfs.length-1].connect(lpfs[0]);
-            lpfs[lpfs.length-1].connect(gain);
-            gain.connect(merger);
+      // 为该 stem 下的所有轨道共享同一个 gain
+      const tracks = TRACKS_CFG.filter(tc => tc.stem === stemName);
+      tracks.forEach(tc => {
+        trackGains[tc.name] = gain;
+      });
 
-            trackGains[tc.name] = gain;
-            trackFilters[tc.name] = { hpfs, lpfs, gain };
-          } else {
-            // 全频段轨道（兜底）
-            const gain = actx.createGain();
-            gain.gain.value = 1;
-            src.connect(gain);
-            gain.connect(merger);
-            trackGains[tc.name] = gain;
-          }
-        });
-
-        merger.connect(analyser);
-        analyser.connect(actx.destination);
-
-      } else {
-        // ── 单轨 stem（guitar/piano）：直通 ──
-        const gain = actx.createGain();
-        gain.gain.value = 1;
-        src.connect(gain);
-        gain.connect(analyser);
-        analyser.connect(actx.destination);
-
-        if(tracks.length === 1){
-          trackGains[tracks[0].name] = gain;
-        } else {
-          tracks.forEach(tc => {
-            trackGains[tc.name] = gain;
-          });
-        }
+      // 如果没有轨道映射到这个 stem（比如 drums 主轨），也记录
+      if(tracks.length === 0){
+        trackGains[stemName] = gain;
       }
     });
+
     _ready=true;
-    console.log('🎛 Audio: 4阶带通滤波器路由已初始化 (~48dB/oct)，', Object.keys(trackGains).length, '轨');
+    console.log('🎛 Audio: DrumSep 独立音频架构已初始化，', Object.keys(trackGains).length, '轨');
   }catch(e){console.warn('AudioCtx:',e)}
 }
 
@@ -708,9 +669,10 @@ async function loadSong(idx){
     if(d.audio_files){
       AUD.src=d.audio_files.main||'';
       Object.keys(STEM_AUDS).forEach(k=>{
-        if(d.audio_files[k])STEM_AUDS[k].src=d.audio_files[k];
+        if(d.audio_files[k]) STEM_AUDS[k].src=d.audio_files[k];
+        else STEM_AUDS[k].src=''; // 清空不存在的轨道
       });
-      Object.values(STEM_AUDS).forEach(a=>a.load());
+      Object.values(STEM_AUDS).forEach(a=>{if(a.src)a.load();});
     }
 
     buildDAW();buildLog();drawStaticWF();
@@ -1586,7 +1548,7 @@ function updateDance(){
 // ══════════════════════════════════════════════════════════════
 // 播放头
 // ══════════════════════════════════════════════════════════════
-function getTime(){return STEM_AUDS.drums.currentTime||0;}
+function getTime(){return (STEM_AUDS.kick?.currentTime || STEM_AUDS.drums.currentTime)||0;}
 function updateHead(){
   const ct=getTime(),dur=TOTAL;
   document.getElementById('ph').style.left=(dur>0?ct/dur*100:0)+'%';
@@ -1621,7 +1583,7 @@ function pa(){
 }
 function syncTime(t){Object.values(STEM_AUDS).forEach(a=>{a.currentTime=t;});}
 
-STEM_AUDS.drums.addEventListener('ended',()=>{_playing=false;document.getElementById('pb').textContent='▶';});
+(STEM_AUDS.kick || STEM_AUDS.drums).addEventListener('ended',()=>{_playing=false;document.getElementById('pb').textContent='▶';});
 function skipB(n){
   const bd=BEATS.length>1?(BEATS[1]-BEATS[0]):(60/BPM);
   syncTime(Math.max(0,Math.min(TOTAL,getTime()+n*bd)));
@@ -1693,12 +1655,11 @@ function toggleTrack(btn){
 
 function syncStemMute(stem){
   const allTracksOfStem = TRACKS_CFG.filter(t=>t.stem===stem);
-  const allMuted = allTracksOfStem.every(t=>trackMuted[t.name]);
-  // stem 音频 mute：只有全部子轨 muted 才 mute 音频源
-  if(STEM_AUDS[stem]) STEM_AUDS[stem].muted = allMuted;
-  stemMuted[stem] = allMuted;
-  // per-track gain 控制：精确频段静音（使用 ramp 避免爆音）
   allTracksOfStem.forEach(tc=>{
+    // 每个子轨直接控制自己的 stem audio 元素
+    const aud = STEM_AUDS[tc.stem];
+    if(aud) { aud.muted = trackMuted[tc.name]; stemMuted[tc.stem] = trackMuted[tc.name]; }
+    // gain 节点控制
     const g = trackGains[tc.name];
     if(g){
       const t = actx ? actx.currentTime : 0;
@@ -1722,7 +1683,11 @@ function muteAll(muted){
       g.gain.setTargetAtTime(muted ? 0 : 1, ct, 0.015);
     }
   });
-  Object.keys(STEM_AUDS).forEach(k=>{ STEM_AUDS[k].muted = muted; stemMuted[k] = muted; });
+  Object.keys(STEM_AUDS).forEach(k=>{
+    // drums 主轨始终 mute（DrumSep 子轨替代）
+    if(k === 'drums' && STEM_AUDS.kick?.src) { STEM_AUDS[k].muted = true; stemMuted[k] = true; return; }
+    STEM_AUDS[k].muted = muted; stemMuted[k] = muted;
+  });
 }
 
 function soloTrack(name){
@@ -1746,9 +1711,10 @@ function soloTrack(name){
       g.gain.setTargetAtTime(isSolo ? 1 : 0, ct, 0.015);
     }
   });
-  // 音频源：所有 stem 都不 mute（让滤波器去控制）
-  // 只 mute 完全不相关的 stem（非 solo 轨所在 stem）
+  // 音频源：只打开 solo 轨对应的 stem，其他全 mute
   Object.keys(STEM_AUDS).forEach(k=>{
+    // drums 主轨始终 mute（DrumSep 子轨替代）
+    if(k === 'drums' && STEM_AUDS.kick?.src) { STEM_AUDS[k].muted = true; stemMuted[k] = true; return; }
     STEM_AUDS[k].muted = (k !== soloStem);
     stemMuted[k] = (k !== soloStem);
   });
@@ -1770,9 +1736,13 @@ function exitSolo(){
 function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
 function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
-STEM_AUDS.drums.addEventListener('loadedmetadata',()=>{
-  TOTAL=STEM_AUDS.drums.duration;
+// 用 kick（DrumSep）或 drums（回退）获取时长
+(STEM_AUDS.kick || STEM_AUDS.drums).addEventListener('loadedmetadata',()=>{
+  TOTAL=(STEM_AUDS.kick?.duration || STEM_AUDS.drums.duration);
   document.getElementById('tt').textContent=fmt(TOTAL);
+});
+STEM_AUDS.drums.addEventListener('loadedmetadata',()=>{
+  if(!TOTAL) { TOTAL=STEM_AUDS.drums.duration; document.getElementById('tt').textContent=fmt(TOTAL); }
 });
 
 // ══════════════════════════════════════════════════════════════

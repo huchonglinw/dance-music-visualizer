@@ -206,6 +206,57 @@ if __name__ == "__main__":
             r = run(f'ffmpeg -y -i "{wavs[0]}" -b:a 192k "{dst}"')
             print(f"  {'✅' if r.returncode==0 else '❌'} [{song}] {stem_label.lower()}.mp3")
 
+        # ── DrumSep：鼓组细拆（drums.wav → kick/snare/toms/hh/cymbals）──
+        drums_wav = glob.glob(os.path.join(stems_dir, "*(Drums)*.wav"))
+        if not drums_wav:
+            drums_wav = glob.glob(os.path.join(stems_dir, "*Drums*.wav"))
+        drumsep_dir = os.path.join(stems6, "drumsep")
+        # 检查是否已有 DrumSep MP3 输出（最终目标）
+        drumsep_mp3_done = all(os.path.exists(os.path.join(stems6, f"{ds}.mp3")) and os.path.getsize(os.path.join(stems6, f"{ds}.mp3")) > 5000 for ds in ["kick","snare","toms","hh","cymbals"])
+        if drums_wav and not drumsep_mp3_done:
+            os.makedirs(drumsep_dir, exist_ok=True)
+            print(f"🥁 [{song}] DrumSep 鼓组细拆中...")
+            msst_dir = os.path.join(BASE, "Music-Source-Separation-Training")
+            drumsep_cfg = os.path.join(BASE, "models", "drumsep_config.yaml")
+            drumsep_ckpt = os.path.join(BASE, "models", "drumsep_5stems_mdx23c_jarredou.ckpt")
+            # 创建临时输入目录（MSST inference 需要文件夹）
+            tmp_in = os.path.join(BASE, "tmp_drumsep_in")
+            os.makedirs(tmp_in, exist_ok=True)
+            import shutil as _sh
+            _sh.copy2(drums_wav[0], os.path.join(tmp_in, "drums.wav"))
+            r = run(f'cd "{msst_dir}" && python3 inference.py '
+                    f'--model_type mdx23c '
+                    f'--config_path "{drumsep_cfg}" '
+                    f'--start_check_point "{drumsep_ckpt}" '
+                    f'--input_folder "{tmp_in}" '
+                    f'--store_dir "{drumsep_dir}"',
+                    cwd=msst_dir)
+            _sh.rmtree(tmp_in, ignore_errors=True)
+            if r.returncode != 0:
+                print(f"⚠️  [{song}] DrumSep 失败（将回退到频率分析）")
+            else:
+                # MSST 输出到 drumsep_dir/drums/ 子目录（以输入文件名命名）
+                # 搜索所有可能的路径
+                for ds in ["kick","snare","toms","hh","cymbals"]:
+                    wavs = []
+                    for search_dir in [drumsep_dir, os.path.join(drumsep_dir, "drums")]:
+                        if not os.path.isdir(search_dir):
+                            continue
+                        wavs = glob.glob(os.path.join(search_dir, f"{ds}.wav"))
+                        if not wavs:
+                            wavs = glob.glob(os.path.join(search_dir, f"*{ds}*.wav"))
+                        if wavs:
+                            break
+                    if wavs:
+                        mp3_dst = os.path.join(stems6, f"{ds}.mp3")
+                        run(f'ffmpeg -y -i "{wavs[0]}" -b:a 192k "{mp3_dst}"')
+                        print(f"  ✅ {ds}.mp3")
+                    else:
+                        print(f"  ⚠️  未找到 {ds} WAV 文件")
+                print(f"✅ [{song}] DrumSep 完成")
+        elif drumsep_mp3_done:
+            print(f"⏭  [{song}] DrumSep 已存在")
+
         # 分析
         print(f"📊 [{song}] 分析 14 轨...")
         r = run(f'python3 analyze_msst.py "{stems_dir}" "{mp3_src}" '
@@ -226,6 +277,11 @@ if __name__ == "__main__":
             'piano':f'songs_audio/{slug}_stems6/piano.mp3',
             'vocals':f'songs_audio/{slug}_stems6/vocals.mp3',
             'other':f'songs_audio/{slug}_stems6/other.mp3',
+            'kick':f'songs_audio/{slug}_stems6/kick.mp3',
+            'snare':f'songs_audio/{slug}_stems6/snare.mp3',
+            'toms':f'songs_audio/{slug}_stems6/toms.mp3',
+            'hh':f'songs_audio/{slug}_stems6/hh.mp3',
+            'cymbals':f'songs_audio/{slug}_stems6/cymbals.mp3',
         }})
         with open(beats_out,'w') as f: json.dump(d,f,ensure_ascii=False,indent=2)
         print(f"✅ [{song}] 完成 BPM={d.get('bpm')} 调性={d.get('key')}")

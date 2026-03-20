@@ -2,8 +2,8 @@
 """
 analyze_msst.py — AI 6轨分离 + 子频段双重分析 (14轨版)
 
-轨道结构 (14轨):
-  鼓组 4子轨  : kick / snare / hihat / crash       (drums AI轨 → 频段滤波)
+轨道结构 (15轨 — DrumSep AI 鼓组细拆版):
+  鼓组 5子轨  : kick / snare / toms / hh / cymbals  (drums AI轨 → DrumSep AI细拆)
   人声 3子轨  : vocal_lo / vocal_mid / vocal_hi   (vocals AI轨 → 频段滤波)
   贝斯 2子轨  : bass_sub / bass_mid               (bass AI轨 → 频段滤波)
   独立 3轨    : guitar / piano / other
@@ -27,7 +27,29 @@ def fmt(s):
 
 
 def find_stem_file(stems_dir, stem_name):
-    """在 audio-separator / demucs 输出目录中找指定 stem"""
+    """在 audio-separator / demucs / drumsep 输出目录中找指定 stem"""
+    # DrumSep 子轨：优先在 stems6 下找已转换的 MP3，或 drumsep 子目录的 WAV
+    drumsep_stems = {'kick', 'snare', 'toms', 'hh', 'cymbals'}
+    if stem_name.lower() in drumsep_stems:
+        parent = os.path.dirname(stems_dir)
+        slug = os.path.basename(stems_dir).replace('_stems', '')
+        stems6_base = os.path.join(parent, '..', 'songs_audio', slug + '_stems6')
+
+        # 优先找 stems6 目录下直接的 mp3（已转换）
+        stems6_mp3 = os.path.join(stems6_base, f'{stem_name}.mp3')
+        if os.path.exists(stems6_mp3):
+            return stems6_mp3
+
+        # 在 drumsep/ 和 drumsep/drums/ 子目录找 WAV
+        for sub in ['drumsep', os.path.join('drumsep', 'drums')]:
+            ds_dir = os.path.join(stems6_base, sub)
+            if not os.path.isdir(ds_dir):
+                continue
+            for pat in [f'{stem_name}.wav', f'*{stem_name}*.wav', f'*({stem_name})*.wav']:
+                matches = glob.glob(os.path.join(ds_dir, pat), recursive=False)
+                if matches:
+                    return matches[0]
+
     patterns = [
         os.path.join(stems_dir, f'*({stem_name})*.wav'),
         os.path.join(stems_dir, f'*({stem_name})*.WAV'),
@@ -130,20 +152,22 @@ def analyze_full_track(y_stem, sr, n_fft, hop, dur):
 #   type='full'  → 直接全频段
 # ══════════════════════════════════════════════════════════════
 TRACKS_CONFIG = [
-    # ── 鼓组 4 子轨（kick/snare/hihat/crash 频段完全不重叠）──
-    {'name': 'kick',      'stem': 'drums',  'type': 'band',
-     'lo': 30,   'hi': 200,   'thresh': 0.30, 'min_gap': 3,
-     'label': 'Kick 底鼓',     'icon': '🥁', 'color': '#ff3b30', 'freq': '30-200Hz'},
-    {'name': 'snare',     'stem': 'drums',  'type': 'band',
-     'lo': 200,  'hi': 3000,  'thresh': 0.30, 'min_gap': 4,
-     'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': '200-3kHz'},
-    # cymbals 拆分：hihat 短促金属声(3k-8k) vs crash/ride 持续亮镲(8k-18k)
-    {'name': 'hihat',     'stem': 'drums',  'type': 'band',
-     'lo': 3000, 'hi': 8000,  'thresh': 0.20, 'min_gap': 2,
-     'label': 'Hi-Hat 踩镲',   'icon': '🔔', 'color': '#ffd60a', 'freq': '3k-8kHz'},
-    {'name': 'crash',     'stem': 'drums',  'type': 'band',
-     'lo': 8000, 'hi': 18000, 'thresh': 0.22, 'min_gap': 3,
-     'label': 'Crash 亮镲',    'icon': '💥', 'color': '#ffe066', 'freq': '8k-18kHz'},
+    # ── 鼓组 5 子轨（DrumSep AI 分离，每轨独立音频文件）──
+    {'name': 'kick',      'stem': 'kick',     'type': 'full',
+     'thresh': 0.30, 'min_gap': 3,
+     'label': 'Kick 底鼓',     'icon': '🥁', 'color': '#ff3b30', 'freq': 'AI分离'},
+    {'name': 'snare',     'stem': 'snare',    'type': 'full',
+     'thresh': 0.30, 'min_gap': 4,
+     'label': 'Snare 军鼓',    'icon': '💥', 'color': '#ff9f0a', 'freq': 'AI分离'},
+    {'name': 'toms',      'stem': 'toms',     'type': 'full',
+     'thresh': 0.25, 'min_gap': 3,
+     'label': 'Toms 嗵鼓',     'icon': '🪘', 'color': '#ff6b35', 'freq': 'AI分离'},
+    {'name': 'hh',        'stem': 'hh',       'type': 'full',
+     'thresh': 0.20, 'min_gap': 2,
+     'label': 'Hi-Hat 踩镲',   'icon': '🔔', 'color': '#ffd60a', 'freq': 'AI分离'},
+    {'name': 'cymbals',   'stem': 'cymbals',  'type': 'full',
+     'thresh': 0.22, 'min_gap': 3,
+     'label': 'Cymbals 镲片',  'icon': '🎶', 'color': '#ffe066', 'freq': 'AI分离'},
 
     # ── 人声 3 子轨（同 stem 内无重叠：80-500 / 500-2k / 2k-8k）──
     {'name': 'vocal_lo',  'stem': 'vocals', 'type': 'band',
@@ -214,7 +238,7 @@ def analyze_6stems(stems_dir, original_mp3):
     hop = 512
 
     # ── 加载 6 轨 ──
-    STEM_NAMES = ['Drums', 'Bass', 'Guitar', 'Piano', 'Vocals', 'Other']
+    STEM_NAMES = ['Drums', 'Bass', 'Guitar', 'Piano', 'Vocals', 'Other', 'kick', 'snare', 'toms', 'hh', 'cymbals']
     stem_data = {}
     for sn in STEM_NAMES:
         fpath = find_stem_file(stems_dir, sn)
@@ -285,6 +309,11 @@ def analyze_6stems(stems_dir, original_mp3):
         'piano':  f'songs_audio/{slug}_stems6/piano.mp3',
         'vocals': f'songs_audio/{slug}_stems6/vocals.mp3',
         'other':  f'songs_audio/{slug}_stems6/other.mp3',
+        'kick':     f'songs_audio/{slug}_stems6/kick.mp3',
+        'snare':    f'songs_audio/{slug}_stems6/snare.mp3',
+        'toms':     f'songs_audio/{slug}_stems6/toms.mp3',
+        'hh':       f'songs_audio/{slug}_stems6/hh.mp3',
+        'cymbals':  f'songs_audio/{slug}_stems6/cymbals.mp3',
     }
 
     # ── 节奏范式分析（rhythm_pattern）──
@@ -307,7 +336,7 @@ def analyze_6stems(stems_dir, original_mp3):
         'bar_starts': [round(t, 3) for t in bar_starts],
         'events': events,
         'rhythm_pattern': rhythm_pattern,
-        'separation_model': 'htdemucs_6s (6-stem AI)',
+        'separation_model': 'htdemucs_6s + DrumSep mdx23c (6+5 stem AI)',
         'tracks_config': tracks_out,
         'stems': stems_result,
     }

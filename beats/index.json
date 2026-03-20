@@ -1,170 +1,210 @@
-{
-  "songs": [
-    {
-      "file": "madd3e_-_gi_joe.json",
-      "song": "G.I. Joe",
-      "artist": "MadD3E",
-      "icon": "⚡",
-      "bpm": 95.7,
-      "key": "A Major",
-      "duration": 265.06,
-      "music_start": 0.046,
-      "genre_short": "Hip-Hop"
-    },
-    {
-      "file": "shosnny_-_dj_rhakorz_track_44.json",
-      "song": "Dj RHAKORZ Track 44",
-      "artist": "Shosnny",
-      "icon": "💥",
-      "bpm": 97.5,
-      "key": "E Major",
-      "duration": 117.58,
-      "music_start": 0.046,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "shosnny_-_dj_shustryi_hip-hop12.json",
-      "song": "DJ SHUSTRYI HIP-HOP12",
-      "artist": "Shosnny",
-      "icon": "🔥",
-      "bpm": 94.0,
-      "key": "F# Major",
-      "duration": 102.22,
-      "music_start": 0.081,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "shosnny_-_franky_dee_ukay_vs_andrey_styl.json",
-      "song": "Franky Dee vs Andrey Stylez",
-      "artist": "Shosnny",
-      "icon": "⚔️",
-      "bpm": 92.3,
-      "key": "F# Major",
-      "duration": 175.28,
-      "music_start": 0.0,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "shosnny_-_idk_the_name_of_the_track.json",
-      "song": "idk the name",
-      "artist": "Shosnny",
-      "icon": "🎤",
-      "bpm": 105.5,
-      "key": "A Major",
-      "duration": 242.05,
-      "music_start": 1.173,
-      "genre_short": "Hip-Hop"
-    },
-    {
-      "file": "shosnny_-_juste_debout2k19_final_waydi_r.json",
-      "song": "JD2019 Waydi vs Diablo",
-      "artist": "Shosnny",
-      "icon": "👑",
-      "bpm": 112.3,
-      "key": "C Major",
-      "duration": 114.29,
-      "music_start": 0.209,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "shosnny_-_juste_debout_geneva_diablo_sty.json",
-      "song": "Juste Debout GENEVA",
-      "artist": "Shosnny",
-      "icon": "🥊",
-      "bpm": 97.5,
-      "key": "G# Major",
-      "duration": 205.42,
-      "music_start": 0.035,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "shosnny_-_kod2016_中国站_hiphop_final.json",
-      "song": "KOD2016 中国站 HipHop Final",
-      "artist": "Shosnny",
-      "icon": "🏆",
-      "bpm": 110.0,
-      "key": "G Major",
-      "duration": 73.98,
-      "music_start": 0.07,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "shosnny_-_nvrmind_x_boybap_-_summertime.json",
-      "song": "Nvrmind x Boybap Summertime",
-      "artist": "Shosnny",
-      "icon": "☀️",
-      "bpm": 51.7,
-      "key": "A# Major",
-      "duration": 149.13,
-      "music_start": 0.046,
-      "genre_short": "Hip-Hop"
-    },
-    {
-      "file": "shosnny_-_sony_track_28.json",
-      "song": "Sony Track 28",
-      "artist": "Shosnny",
-      "icon": "🎵",
-      "bpm": 139.7,
-      "key": "F# Major",
-      "duration": 169.64,
-      "music_start": 2.287,
-      "genre_short": "Hip-Hop"
-    },
-    {
-      "file": "shosnny_-_sony_track_33.json",
-      "song": "Sony Track 33",
-      "artist": "Shosnny",
-      "icon": "🎶",
-      "bpm": 105.5,
-      "key": "D Major",
-      "duration": 101.77,
-      "music_start": 0.592,
-      "genre_short": "Hip-Hop"
-    },
-    {
-      "file": "shosnny_-_summer_dance_forever_batalla_v.json",
-      "song": "Summer Dance Forever Battle",
-      "artist": "Shosnny",
-      "icon": "🏖️",
-      "bpm": 198.8,
-      "key": "F# Major",
-      "duration": 176.5,
-      "music_start": 0.139,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "vortxbeat_-_larry_jordan_battle.json",
-      "song": "LARRY JORDAN BATTLE",
-      "artist": "vortxbeat",
-      "icon": "🥊",
-      "bpm": 107.7,
-      "key": "C# Major",
-      "duration": 202.57,
-      "music_start": 0.267,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "vortxbeat_-_laurent_jordan_battle.json",
-      "song": "LAURENT JORDAN BATTLE",
-      "artist": "vortxbeat",
-      "icon": "⚔️",
-      "bpm": 107.7,
-      "key": "C Major",
-      "duration": 137.37,
-      "music_start": 1.718,
-      "genre_short": "Battle"
-    },
-    {
-      "file": "vortxbeat_-_this_is_hot_what.json",
-      "song": "This Is Hot What",
-      "artist": "vortxbeat",
-      "icon": "🔥",
-      "bpm": 112.3,
-      "key": "D Major",
-      "duration": 240.61,
-      "music_start": 0.511,
-      "genre_short": "Hip-Hop"
+[
+  {
+    "file": "madd3e_-_gi_joe.json",
+    "artist": "MadD3E",
+    "song": "G.I. Joe",
+    "bpm": 95.7,
+    "key": "A Major",
+    "icon": "⚡",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
     }
-  ],
-  "count": 15
-}
+  },
+  {
+    "file": "one_second.json",
+    "artist": "Unknown",
+    "song": "one_second",
+    "bpm": 139.7,
+    "key": "G Major",
+    "icon": "🎵",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_dj_rhakorz_track_44.json",
+    "artist": "Shosnny",
+    "song": "Dj RHAKORZ Track 44",
+    "bpm": 97.5,
+    "key": "E Major",
+    "icon": "💥",
+    "genre": {
+      "name": "Hip-Hop Battle",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_dj_shustryi_hip-hop12.json",
+    "artist": "Shosnny",
+    "song": "DJ SHUSTRYI HIP-HOP12",
+    "bpm": 94.0,
+    "key": "F# Major",
+    "icon": "🔥",
+    "genre": {
+      "name": "Hip-Hop Battle",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_franky_dee_ukay_vs_andrey_styl.json",
+    "artist": "Shosnny",
+    "song": "Franky Dee vs Andrey Stylez",
+    "bpm": 92.3,
+    "key": "F# Major",
+    "icon": "⚔️",
+    "genre": {
+      "name": "Battle HipHop",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_idk_the_name_of_the_track.json",
+    "artist": "Shosnny",
+    "song": "idk the name",
+    "bpm": 105.5,
+    "key": "A Major",
+    "icon": "🎤",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_juste_debout2k19_final_waydi_r.json",
+    "artist": "Shosnny",
+    "song": "Juste Debout GENEVA",
+    "bpm": 112.3,
+    "key": "C Major",
+    "icon": "🥊",
+    "genre": {
+      "name": "Battle",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_juste_debout_geneva_diablo_sty.json",
+    "artist": "Shosnny",
+    "song": "Juste Debout GENEVA",
+    "bpm": 97.5,
+    "key": "G# Major",
+    "icon": "🥊",
+    "genre": {
+      "name": "Battle",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_kod2016_中国站_hiphop_final.json",
+    "artist": "Shosnny",
+    "song": "KOD2016 中国站 HipHop Final",
+    "bpm": 110.0,
+    "key": "G Major",
+    "icon": "🏆",
+    "genre": {
+      "name": "Battle",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_nvrmind_x_boybap_-_summertime.json",
+    "artist": "Shosnny",
+    "song": "Nvrmind x Boybap Summertime",
+    "bpm": 51.7,
+    "key": "A# Major",
+    "icon": "☀️",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_sony_track_28.json",
+    "artist": "Shosnny",
+    "song": "Sony Track 28",
+    "bpm": 139.7,
+    "key": "F# Major",
+    "icon": "🎵",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_sony_track_33.json",
+    "artist": "Shosnny",
+    "song": "Sony Track 33",
+    "bpm": 105.5,
+    "key": "D Major",
+    "icon": "🎶",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "shosnny_-_summer_dance_forever_batalla_v.json",
+    "artist": "Shosnny",
+    "song": "Summer Dance Forever Battle",
+    "bpm": 198.8,
+    "key": "F# Major",
+    "icon": "🏖️",
+    "genre": {
+      "name": "Battle",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "vortxbeat_-_larry_jordan_battle.json",
+    "artist": "vortxbeat",
+    "song": "LARRY JORDAN BATTLE",
+    "bpm": 107.7,
+    "key": "C# Major",
+    "icon": "🥊",
+    "genre": {
+      "name": "Battle HipHop",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "vortxbeat_-_laurent_jordan_battle.json",
+    "artist": "vortxbeat",
+    "song": "LAURENT JORDAN BATTLE",
+    "bpm": 107.7,
+    "key": "C Major",
+    "icon": "⚔️",
+    "genre": {
+      "name": "Battle HipHop",
+      "short": "Battle",
+      "type": "hiphop"
+    }
+  },
+  {
+    "file": "vortxbeat_-_this_is_hot_what.json",
+    "artist": "vortxbeat",
+    "song": "This Is Hot What",
+    "bpm": 112.3,
+    "key": "D Major",
+    "icon": "🔥",
+    "genre": {
+      "name": "Hip-Hop",
+      "short": "Hip-Hop",
+      "type": "hiphop"
+    }
+  }
+]
