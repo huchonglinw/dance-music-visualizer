@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🕺 Dance Music Visualizer · 街舞音乐教学工具</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#07070f;
+  color:#e8e8f0;
+  font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;
+  min-height:100vh;
+}
+
+/* ── 全屏背景光晕 ── */
+.bg{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 50%,rgba(255,45,85,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 40% at 80% 30%,rgba(10,132,255,.06) 0%,transparent 70%),
+    radial-gradient(ellipse 40% 40% at 55% 80%,rgba(191,90,242,.05) 0%,transparent 70%);
+}
+
+/* ── 星星粒子 ── */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.4}
+
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 18px 60px}
+
+/* ── Hero ── */
+.hero{
+  text-align:center;
+  padding:70px 20px 50px;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,110,199,.1);border:1px solid rgba(255,110,199,.25);
+  color:#ff6ec7;font-size:.72rem;font-weight:600;letter-spacing:.8px;
+  padding:6px 16px;border-radius:20px;margin-bottom:24px;
+}
+.hero-title{
+  font-size:2.8rem;font-weight:800;line-height:1.15;letter-spacing:-1px;
+  margin-bottom:16px;
+}
+.hero-title .hl{
+  background:linear-gradient(135deg,#ff3b30,#ff9f0a,#0a84ff,#bf5af2);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{
+  font-size:1.05rem;color:rgba(255,255,255,.45);line-height:1.7;max-width:520px;margin:0 auto 36px;
+}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{
+  padding:14px 28px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#ff3b30,#bf5af2);
+  color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;
+  box-shadow:0 0 30px rgba(255,59,48,.3),0 0 60px rgba(191,90,242,.15);
+  transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 40px rgba(255,59,48,.4),0 0 80px rgba(191,90,242,.2)}
+.btn-secondary{
+  padding:14px 28px;border-radius:14px;
+  border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);
+  color:#ddd;font-size:.95rem;font-weight:600;cursor:pointer;
+  transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+}
+.btn-secondary:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25)}
+
+/* ── 功能特性卡片 ── */
+.features{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+  margin:50px 0;
+}
+@media(max-width:640px){.features{grid-template-columns:1fr}}
+.feat{
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;padding:22px;transition:all .2s;
+}
+.feat:hover{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.12);transform:translateY(-2px)}
+.feat-icon{font-size:1.6rem;margin-bottom:12px}
+.feat-title{font-size:.95rem;font-weight:700;margin-bottom:6px}
+.feat-desc{font-size:.78rem;color:rgba(255,255,255,.4);line-height:1.6}
+
+/* ── 曲库区 ── */
+.section-title{
+  font-size:1.1rem;font-weight:700;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px;
+}
+.section-title::before{content:'';display:block;width:4px;height:18px;background:linear-gradient(#ff3b30,#bf5af2);border-radius:2px}
+
+.songs-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:50px}
+@media(max-width:520px){.songs-grid{grid-template-columns:1fr}}
+
+.song-card{
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;padding:16px 18px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  transition:all .2s;text-decoration:none;color:inherit;
+}
+.song-card:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);transform:translateY(-1px)}
+.song-cover{
+  width:52px;height:52px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.5rem;
+}
+.song-info .song-name{font-size:.9rem;font-weight:700;margin-bottom:3px}
+.song-info .song-artist{font-size:.72rem;color:rgba(255,255,255,.4)}
+.song-info .song-tags{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.tag{
+  font-size:.6rem;font-weight:600;padding:2px 8px;border-radius:8px;
+  border:1px solid;
+}
+.song-arrow{margin-left:auto;color:rgba(255,255,255,.2);font-size:1rem;flex-shrink:0}
+
+/* ── 主题选择 ── */
+.themes-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:50px}
+.theme-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:20px;
+  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
+  cursor:pointer;font-size:.78rem;font-weight:600;transition:all .15s;
+  text-decoration:none;color:#aaa;
+}
+.theme-pill:hover{border-color:rgba(255,255,255,.25);color:#fff;background:rgba(255,255,255,.1)}
+.theme-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── 底部 ── */
+footer{
+  border-top:1px solid rgba(255,255,255,.06);padding:28px 0 0;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
+.footer-left{font-size:.75rem;color:rgba(255,255,255,.2)}
+.footer-links{display:flex;gap:20px}
+.footer-links a{font-size:.72rem;color:rgba(255,255,255,.25);text-decoration:none;transition:color .15s}
+.footer-links a:hover{color:rgba(255,255,255,.6)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<canvas id="stars"></canvas>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">🕺 STREET DANCE MUSIC TOOL</div>
+    <h1 class="hero-title">
+      让你的学生<br><span class="hl">看见节奏，感受音乐</span>
+    </h1>
+    <p class="hero-sub">
+      AI 自动分离鼓组 / 人声 / Bass / 采样层，实时标注 Kick·Snare·Hi-Hat 时间点，
+      8拍计数 + 卡点提示，专为街舞教学设计。
+    </p>
+    <div class="hero-actions">
+      <a href="teacher.html" class="btn-primary">🎯 打开教学分析器</a>
+      <a href="themes.html" class="btn-secondary">🎨 主题预览</a>
+    </div>
+  </div>
+
+  <!-- 功能特性 -->
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon">🥁</div>
+      <div class="feat-title">Kick · Snare · Hi-Hat 分离</div>
+      <div class="feat-desc">AI 自动识别底鼓 / 小鼓 / 踩镲的每个时间点，波形上逐拍标注颜色</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎯</div>
+      <div class="feat-title">8拍 + 卡点提示</div>
+      <div class="feat-desc">自动识别音乐开始位置，8拍计数从真实节拍出发，实时提示「该动了」「打 ci」</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">进入点检测</div>
+      <div class="feat-desc">自动标注 Bass 进入、Vocal 进入、音效突变等关键时间点，让学生懂得等待时机</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🐢</div>
+      <div class="feat-title">变速播放</div>
+      <div class="feat-desc">0.5x / 0.75x 慢速练习，让学生清楚听到每一拍节拍，练习困难段落</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎚️</div>
+      <div class="feat-title">多轨 Mute / Solo</div>
+      <div class="feat-desc">单独听鼓组感受节拍，单独听 Bass 感受低频，独立各音轨反复分析</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🌐</div>
+      <div class="feat-title">零服务器部署</div>
+      <div class="feat-desc">GitHub Pages 静态托管，预处理好的歌曲随时加载，无需本地运行后端</div>
+    </div>
+  </div>
+
+  <!-- 曲库 -->
+  <div class="section-title">曲库 · Song Library</div>
+  <div class="songs-grid">
+    <a href="teacher.html?song=watercolor" class="song-card">
+      <div class="song-cover" style="background:linear-gradient(135deg,#1a0a1e,#3d1a5c)">🎨</div>
+      <div class="song-info">
+        <div class="song-name">Watercolor</div>
+        <div class="song-artist">Katuchat</div>
+        <div class="song-tags">
+          <span class="tag" style="color:#bf5af2;border-color:rgba(191,90,242,.3)">Lo-fi HipHop</span>
+          <span class="tag" style="color:#ff9f0a;border-color:rgba(255,159,10,.3)">92 BPM</span>
+          <span class="tag" style="color:#30d158;border-color:rgba(48,209,88,.3)">Swing</span>
+        </div>
+      </div>
+      <div class="song-arrow">›</div>
+    </a>
+
+    <a href="teacher.html?song=demo-hiphop" class="song-card">
+      <div class="song-cover" style="background:linear-gradient(135deg,#0a1a2e,#0a3060)">🔊</div>
+      <div class="song-info">
+        <div class="song-name">Boom Bap Classic</div>
+        <div class="song-artist">Demo Track</div>
+        <div class="song-tags">
+          <span class="tag" style="color:#0a84ff;border-color:rgba(10,132,255,.3)">Boom Bap</span>
+          <span class="tag" style="color:#ff3b30;border-color:rgba(255,59,48,.3)">95 BPM</span>
+        </div>
+      </div>
+      <div class="song-arrow">›</div>
+    </a>
+
+    <a href="teacher.html?song=demo-trap" class="song-card">
+      <div class="song-cover" style="background:linear-gradient(135deg,#1e0a0a,#5c1a1a)">🔥</div>
+      <div class="song-info">
+        <div class="song-name">Trap Energy</div>
+        <div class="song-artist">Demo Track</div>
+        <div class="song-tags">
+          <span class="tag" style="color:#ff3b30;border-color:rgba(255,59,48,.3)">Trap</span>
+          <span class="tag" style="color:#ff9f0a;border-color:rgba(255,159,10,.3)">140 BPM</span>
+        </div>
+      </div>
+      <div class="song-arrow">›</div>
+    </a>
+
+    <div class="song-card" style="border-style:dashed;cursor:default;opacity:.4">
+      <div class="song-cover" style="background:rgba(255,255,255,.05)">➕</div>
+      <div class="song-info">
+        <div class="song-name">添加新曲目</div>
+        <div class="song-artist">本地分轨后上传</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主题选择 -->
+  <div class="section-title">UI 主题 · Themes</div>
+  <div class="themes-row">
+    <a href="themes.html#cyber"   class="theme-pill"><div class="theme-dot" style="background:#ff2d55"></div>🌆 Cyberpunk</a>
+    <a href="themes.html#tokyo"   class="theme-pill"><div class="theme-dot" style="background:#ff6ec7"></div>🌸 Neon Tokyo</a>
+    <a href="themes.html#forest"  class="theme-pill"><div class="theme-dot" style="background:#00ff87"></div>🌿 Dark Forest</a>
+    <a href="themes.html#sunset"  class="theme-pill"><div class="theme-dot" style="background:#ff9a3c"></div>🌅 Sunset</a>
+    <a href="themes.html#light"   class="theme-pill"><div class="theme-dot" style="background:#007aff"></div>☀️ Clean White</a>
+  </div>
+
+  <footer>
+    <div class="footer-left">Dance Music Visualizer · 街舞教学工具 · MIT License</div>
+    <div class="footer-links">
+      <a href="https://github.com/huchonglin/dance-music-visualizer" target="_blank">GitHub</a>
+      <a href="teacher.html">教学分析器</a>
+      <a href="themes.html">主题预览</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+// 星空背景
+(function(){
+  const c=document.getElementById('stars'),ctx=c.getContext('2d');
+  let W,H,pts=[];
+  function init(){
+    W=c.width=innerWidth;H=c.height=innerHeight;
+    pts=Array.from({length:100},()=>({
+      x:Math.random()*W,y:Math.random()*H,
+      r:Math.random()*1.2+.3,
+      dx:(Math.random()-.5)*.15,dy:(Math.random()-.5)*.15,
+      a:Math.random()*.6+.2
+    }));
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x+=p.dx;p.y+=p.dy;
+      if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${p.a})`;ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  init();draw();
+  addEventListener('resize',init);
+})();
+</script>
+</body>
+</html>

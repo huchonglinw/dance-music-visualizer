@@ -1,0 +1,159 @@
+{
+  "song": "Watercolor",
+  "artist": "Katuchat",
+  "bpm": 92,
+  "key": "F# Minor",
+  "duration": 208.0,
+  "swing": 0.06,
+  "music_start": 4.0,
+  "_comment": "music_start = 前奏/黑胶铺底结束，音乐真正进来的时间点（秒）",
+
+  "beats": [
+    4.000, 4.652, 5.304, 5.956, 6.608, 7.260, 7.912, 8.564,
+    9.216, 9.868,10.520,11.172,11.824,12.476,13.128,13.780,
+    14.432,15.084,15.736,16.388,17.040,17.692,18.344,18.996,
+    19.648,20.300,20.952,21.604,22.256,22.908,23.560,24.212,
+    24.864,25.516,26.168,26.820,27.472,28.124,28.776,29.428,
+    30.080,30.732,31.384,32.036,32.688,33.340,33.992,34.644,
+    35.296,35.948,36.600,37.252,37.904,38.556,39.208,39.860,
+    40.512,41.164,41.816,42.468,43.120,43.772,44.424,45.076
+  ],
+  "_beats_note": "每拍时间戳（秒），由 librosa.beat.beat_track 生成，含 Swing 偏移",
+
+  "bar_starts": [4.000, 9.216, 14.432, 19.648, 24.864, 30.080, 35.296, 40.512],
+  "_bar_starts_note": "每个 8拍组的起始时间戳",
+
+  "events": [
+    {
+      "time": 0.5,
+      "type": "vinyl",
+      "icon": "💿",
+      "label": "黑胶铺底",
+      "desc": "黑胶噪声开始，进入状态，等待音乐",
+      "color": "#888888",
+      "is_cue": false
+    },
+    {
+      "time": 4.0,
+      "type": "bass",
+      "icon": "🔊",
+      "label": "Bass + Kick 进入",
+      "desc": "音乐真正开始！Bass 和底鼓同时进来，准备动",
+      "color": "#0a84ff",
+      "is_cue": true
+    },
+    {
+      "time": 8.0,
+      "type": "snare",
+      "icon": "🥁",
+      "label": "Snare 进入",
+      "desc": "小鼓反拍出现，这就是「打 ci」的时机",
+      "color": "#ff9f0a",
+      "is_cue": true
+    },
+    {
+      "time": 12.0,
+      "type": "vocal",
+      "icon": "🎤",
+      "label": "Vocal Chop 进入",
+      "desc": "人声切片进来，音乐全开了，可以完整跳",
+      "color": "#30d158",
+      "is_cue": true
+    },
+    {
+      "time": 22.0,
+      "type": "hihat",
+      "icon": "🎩",
+      "label": "Hi-Hat 密集化",
+      "desc": "踩镲加密，感受切分细节，流畅衔接动作",
+      "color": "#ffd60a",
+      "is_cue": true
+    },
+    {
+      "time": 35.3,
+      "type": "bar1",
+      "icon": "🔁",
+      "label": "第 2 大段开始",
+      "desc": "新一组 8拍，段落重复",
+      "color": "#ff6ec7",
+      "is_cue": true
+    },
+    {
+      "time": 66.4,
+      "type": "bar1",
+      "icon": "🔁",
+      "label": "Bridge 段落",
+      "desc": "Bridge / 过渡段，注意听音乐变化",
+      "color": "#ff6ec7",
+      "is_cue": true
+    },
+    {
+      "time": 84.1,
+      "type": "sfx",
+      "icon": "✨",
+      "label": "音效突变",
+      "desc": "情绪最高点，Scratch 音效出现",
+      "color": "#bf5af2",
+      "is_cue": true
+    },
+    {
+      "time": 97.2,
+      "type": "bar1",
+      "icon": "🔁",
+      "label": "Outro 段落",
+      "desc": "结尾段，音乐能量逐渐收尾",
+      "color": "#ff6ec7",
+      "is_cue": true
+    }
+  ],
+
+  "drum_pattern": {
+    "kick":  [1,0,0,0,1,0,1,0],
+    "snare": [0,1,0,1,0,1,0,1],
+    "hihat": [1,1,1,1,1,1,1,1],
+    "_note": "每 8 拍内各鼓点的位置，1=有，0=无。kick: 1/3拍强拍+弱变化，snare: 2/4拍反拍，hihat: 全拍"
+  },
+
+  "layers": {
+    "drums": {
+      "start": 4.0,
+      "color": "#ff3b30",
+      "desc": "鼓组（Kick + Snare + Hi-Hat 混合）"
+    },
+    "kick_detail": {
+      "start": 4.0,
+      "color": "#ff3b30",
+      "desc": "底鼓 Kick：20-200Hz，踩踏感，对应大腿/脚的动作"
+    },
+    "snare_detail": {
+      "start": 8.0,
+      "color": "#ff9f0a",
+      "desc": "小鼓 Snare：200-3000Hz，反拍 ci 声，对应甩手/锁动作"
+    },
+    "hihat_detail": {
+      "start": 12.0,
+      "color": "#ffd60a",
+      "desc": "踩镲 Hi-Hat：3000Hz+，切分节奏，对应细节流畅度"
+    },
+    "bass": {
+      "start": 4.0,
+      "color": "#0a84ff",
+      "desc": "低音线：从老唱片采样的 Soul Bass 循环，随 Kick 进入"
+    },
+    "vocals": {
+      "start": 12.0,
+      "color": "#30d158",
+      "desc": "人声 Chop：切碎重组的人声采样，Katuchat 标志性音效"
+    },
+    "guitar_sample": {
+      "start": 4.0,
+      "color": "#bf5af2",
+      "desc": "旋律采样：60-70s 灵魂乐吉他/钢琴，watercolor 风核心"
+    },
+    "vinyl": {
+      "start": 0.0,
+      "color": "#888888",
+      "desc": "黑胶噪声：全程低强度底噪，营造 Lo-fi 质感"
+    }
+  }
+}
