@@ -887,8 +887,14 @@ function buildDAW(){
   const daw=document.getElementById('daw');
   daw.innerHTML='';trackRows=[];
 
+  // 鼓组子轨归到 drums 分组显示
+  const DRUM_STEMS = new Set(['kick','snare','toms','hh','cymbals']);
   const grouped={};
-  TRACKS_CFG.forEach(tc=>{if(!grouped[tc.stem])grouped[tc.stem]=[];grouped[tc.stem].push(tc);});
+  TRACKS_CFG.forEach(tc=>{
+    const groupKey = DRUM_STEMS.has(tc.stem) ? 'drums' : tc.stem;
+    if(!grouped[groupKey])grouped[groupKey]=[];
+    grouped[groupKey].push(tc);
+  });
 
   ['drums','bass','guitar','piano','vocals','other'].forEach(stemName=>{
     const tracks=grouped[stemName];
