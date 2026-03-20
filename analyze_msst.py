@@ -3,7 +3,7 @@
 analyze_msst.py — AI 6轨分离 + 子频段双重分析 (14轨版)
 
 轨道结构 (14轨):
-  鼓组 4子轨  : kick / snare / hihat / crash      (drums AI轨 → 频段滤波)
+  鼓组 4子轨  : kick / snare / hihat / crash       (drums AI轨 → 频段滤波)
   人声 3子轨  : vocal_lo / vocal_mid / vocal_hi   (vocals AI轨 → 频段滤波)
   贝斯 2子轨  : bass_sub / bass_mid               (bass AI轨 → 频段滤波)
   独立 3轨    : guitar / piano / other
@@ -170,15 +170,18 @@ TRACKS_CONFIG = [
     {'name': 'piano',     'stem': 'piano',  'type': 'full',
      'label': 'Piano 钢琴',    'icon': '🎹', 'color': '#bf5af2', 'freq': 'AI全频'},
 
-    # ── Other 拆分（同 stem 内无重叠：200-4k / 4k-20k / 全频段独立检测）──
+    # ── Other 拆分（同 stem 内无重叠：20-200 / 200-4k / 4k-20k）──
+    # other_low 捕获 other stem 的低频垫底（pad/sub bass 类）
+    {'name': 'other_low', 'stem': 'other',  'type': 'band',
+     'lo': 20,   'hi': 200,   'thresh': 0.45, 'min_gap': 6,
+     'label': 'Pad 低频铺底',  'icon': '🌙', 'color': '#8b5cf6', 'freq': '20-200Hz'},
     {'name': 'synth',     'stem': 'other',  'type': 'band',
      'lo': 200,  'hi': 4000,  'thresh': 0.42, 'min_gap': 5,
      'label': 'Synth 合成器',  'icon': '🌊', 'color': '#a78bfa', 'freq': '200-4kHz'},
     {'name': 'fx',        'stem': 'other',  'type': 'band',
      'lo': 4000, 'hi': 20000, 'thresh': 0.35, 'min_gap': 4,
      'label': 'FX/Effects',    'icon': '✨', 'color': '#ff6ec7', 'freq': '4k-20kHz'},
-    {'name': 'other',     'stem': 'other',  'type': 'full',
-     'label': 'Other 整体',    'icon': '💫', 'color': '#c084fc', 'freq': 'AI全频'},
+    # other 全频段已移除：被 other_low(20-200)+synth(200-4k)+fx(4k-20k) 完全覆盖
 ]
 
 

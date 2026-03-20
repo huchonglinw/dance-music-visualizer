@@ -145,14 +145,7 @@ body{display:flex;flex-direction:column}
 .rhythm-dot.both{background:linear-gradient(135deg,#ff3b30,#ff9f0a)}
 .rhythm-dot.weak{opacity:.35}
 
-/* stem-hdr 展开/收起按钮 */
 .stem-hdr{cursor:default}
-.stem-hdr-toggle{
-  margin-left:auto;font-size:.55rem;color:rgba(255,255,255,.3);
-  cursor:pointer;padding:1px 5px;border-radius:3px;
-  transition:.1s;user-select:none
-}
-.stem-hdr-toggle:hover{color:#fff;background:rgba(255,255,255,.08)}
 
 .hud-info{width:186px;display:flex;flex-direction:column;justify-content:center;
   padding:0 10px 0 12px;border-right:1px solid var(--border);flex-shrink:0;gap:4px}
@@ -232,7 +225,7 @@ body{display:flex;flex-direction:column}
 @keyframes hitSegPulse{0%{opacity:1}60%{opacity:.7}100%{opacity:0}}
 
 /* ═══ Stem 混音控制条 ═══ */
-.mixer{display:flex;align-items:center;gap:3px;padding:2px 8px;
+.mixer{display:flex;align-items:center;gap:3px;padding:2px 8px;flex-wrap:wrap;
   border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(5,5,14,.8)}
 .mx-btn{
   padding:2px 8px;border-radius:5px;font-size:.6rem;font-weight:600;cursor:pointer;
@@ -241,7 +234,6 @@ body{display:flex;flex-direction:column}
 .mx-btn.on{color:#fff}
 .mx-btn .dot{width:6px;height:6px;border-radius:50%}
 .mx-btn.muted{opacity:.3;text-decoration:line-through}
-.mx-btn.solo{border-color:#ffd60a;color:#ffd60a;background:rgba(255,214,10,.1)}
 .mx-label{font-size:.5rem;color:var(--dim);font-weight:600}
 
 /* ═══ 多轨 DAW ═══ */
@@ -265,17 +257,7 @@ body{display:flex;flex-direction:column}
 .stem-hdr-icon{font-size:.7rem}
 .stem-hdr-name{font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px}
 
-/* ═══ 合并轨道行（同 stem 子轨合并显示） ═══ */
-.tr-merged{
-  display:flex;align-items:stretch;border-bottom:1px solid rgba(255,255,255,.03);
-  transition:background .08s;position:relative;overflow:hidden}
-.tr-merged:hover{background:rgba(255,255,255,.015)}
-.tr-merged.flash{background:rgba(255,255,255,.05)}
-.tr-merged.hit-glow{animation:trackHit .35s ease-out}
-/* 每个子轨占一小行 */
-.tr-sub-stack{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
-.tr-sub-cv{flex:1;display:block;min-height:0}
-/* 单轨道行（不参与合并） */
+/* 单轨道行 */
 .tr{display:flex;align-items:stretch;height:32px;border-bottom:1px solid rgba(255,255,255,.03);
   transition:background .08s;position:relative;overflow:hidden}
 .tr:hover{background:rgba(255,255,255,.015)}
@@ -486,26 +468,11 @@ body{display:flex;flex-direction:column}
   <div class="hit-seg" id="hs-piano" style="background:#bf5af2"></div>
   <div class="hit-seg" id="hs-synth" style="background:#a78bfa"></div>
   <div class="hit-seg" id="hs-fx" style="background:#ff6ec7"></div>
-  <div class="hit-seg" id="hs-other" style="background:#c084fc"></div>
+  <div class="hit-seg" id="hs-other_low" style="background:#8b5cf6"></div>
 </div>
 
-<!-- Stem 混音控制 -->
-<div class="mixer">
-  <span class="mx-label">Mute:</span>
-  <div class="mx-btn on" data-stem="drums" onclick="toggleStem(this)"><div class="dot" style="background:#ff3b30"></div>Drums</div>
-  <div class="mx-btn on" data-stem="bass" onclick="toggleStem(this)"><div class="dot" style="background:#0a84ff"></div>Bass</div>
-  <div class="mx-btn on" data-stem="guitar" onclick="toggleStem(this)"><div class="dot" style="background:#ff6b35"></div>Guitar</div>
-  <div class="mx-btn on" data-stem="piano" onclick="toggleStem(this)"><div class="dot" style="background:#bf5af2"></div>Piano</div>
-  <div class="mx-btn on" data-stem="vocals" onclick="toggleStem(this)"><div class="dot" style="background:#30d158"></div>Vocals</div>
-  <div class="mx-btn on" data-stem="other" onclick="toggleStem(this)"><div class="dot" style="background:#ff6ec7"></div>Other</div>
-  <span class="mx-label" style="margin-left:8px">Solo:</span>
-  <div class="mx-btn" data-solo="drums" onclick="soloStem(this)">🥁</div>
-  <div class="mx-btn" data-solo="bass" onclick="soloStem(this)">🎸B</div>
-  <div class="mx-btn" data-solo="guitar" onclick="soloStem(this)">🎸G</div>
-  <div class="mx-btn" data-solo="piano" onclick="soloStem(this)">🎹</div>
-  <div class="mx-btn" data-solo="vocals" onclick="soloStem(this)">🎤</div>
-  <div class="mx-btn" data-solo="other" onclick="soloStem(this)">💫</div>
-</div>
+<!-- Stem 混音控制（动态生成） -->
+<div class="mixer" id="mixerBar"></div>
 
 <!-- 主体：DAW + 右侧事件列表 -->
 <div class="main">
@@ -557,7 +524,8 @@ const STEM_AUDS = {
   other:  document.getElementById('aud-other'),
 };
 const stemMuted = {drums:false,bass:false,guitar:false,piano:false,vocals:false,other:false};
-let soloActive=null;
+// 按轨道 mute（映射到 stem 级别的实际 mute）
+const trackMuted = {};
 let actx,stemAnalysers={},stemSrcs={};
 const FFT=4096;
 let _ready=false;
@@ -841,27 +809,9 @@ function buildRhythmPanel(){
 }
 
 // ══════════════════════════════════════════════════════════════
-// DAW — 同 stem 子轨合并为一个合并行（可点击展开）
+// DAW — 所有轨道始终展开，单轨 stem 不显示分组标题
 // ══════════════════════════════════════════════════════════════
-// MERGE_STEMS: drums 子轨（kick/snare/hihat/crash）必须独立行
-// 只有 bass/vocals/other 的子轨可选择合并
-const MERGE_STEMS = new Set(['bass','vocals']); // other 子轨（synth/fx/other）默认展开独立行
 let trackRows=[];
-// 记录每个 stem 是否处于展开状态（默认收起）
-const stemExpanded = {};
-
-function toggleStemExpand(stemName, btn){
-  stemExpanded[stemName] = !stemExpanded[stemName];
-  const isExp = stemExpanded[stemName];
-  // 展开时：隐藏合并行、显示独立行
-  const merged = document.getElementById('tr-'+stemName);
-  if(merged) merged.style.display = isExp ? 'none' : 'flex';
-  const expRows = document.querySelectorAll(`.tr[data-stem="${stemName}"]`);
-  expRows.forEach(r => r.style.display = isExp ? 'flex' : 'none');
-  if(btn) btn.textContent = isExp ? '▲ 收起' : '▼ 展开';
-  // 重新 resize 新显示的行
-  setTimeout(()=>resizeTracks(), 20);
-}
 
 function buildDAW(){
   const daw=document.getElementById('daw');
@@ -874,114 +824,43 @@ function buildDAW(){
     const tracks=grouped[stemName];
     if(!tracks||!tracks.length)return;
 
-    // 分组标题
-    const hdr=document.createElement('div');
-    hdr.className='stem-hdr';
-    hdr.style.borderLeft=`3px solid ${STEM_COLORS[stemName]}`;
-
-    const doMerge = MERGE_STEMS.has(stemName) && tracks.length > 1;
-    let toggleBtn = null;
-    if(doMerge){
-      // 有展开按钮
-      hdr.innerHTML=`<span class="stem-hdr-icon">${STEM_ICONS[stemName]}</span>
-        <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>
-        <span class="stem-hdr-toggle" id="tog-${stemName}">▼ 展开</span>`;
-    } else {
+    // 只有多轨 stem 才显示分组标题（guitar/piano 单轨不显示）
+    if(tracks.length > 1){
+      const hdr=document.createElement('div');
+      hdr.className='stem-hdr';
+      hdr.style.borderLeft=`3px solid ${STEM_COLORS[stemName]}`;
       hdr.innerHTML=`<span class="stem-hdr-icon">${STEM_ICONS[stemName]}</span>
         <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>`;
-    }
-    daw.appendChild(hdr);
-    if(doMerge){
-      toggleBtn = hdr.querySelector('.stem-hdr-toggle');
-      toggleBtn.onclick = (e)=>{ e.stopPropagation(); toggleStemExpand(stemName, toggleBtn); };
+      daw.appendChild(hdr);
     }
 
-    if(doMerge){
-      // ── 合并行（默认显示） ──
-      const mergedH = Math.min(18, Math.max(12, Math.floor(72/tracks.length)));
-      const totalH  = mergedH * tracks.length;
+    // 所有子轨独立行
+    tracks.forEach(tc=>{
+      const subData=STEMS[tc.name]||{};
       const row=document.createElement('div');
-      row.className='tr-merged';
-      row.id='tr-'+stemName;
-      row.style.height=totalH+'px';
-
+      row.className='tr';row.id='tr-'+tc.name;
       const label=document.createElement('div');
       label.className='tr-label';
-      label.style.cssText='flex-direction:column;gap:0;align-items:flex-start;justify-content:center';
-      label.innerHTML=`<span style="font-size:.58rem;font-weight:700;color:${STEM_COLORS[stemName]};padding:2px 0 0 4px">${STEM_ICONS[stemName]} ${STEM_NAMES[stemName].split(' ')[0]}</span>
-        <div style="display:flex;flex-direction:column;width:100%">
-          ${tracks.map(tc=>`<span style="font-size:.38rem;color:${tc.color};padding-left:6px;line-height:${mergedH}px">${tc.label.split(' ').pop()}</span>`).join('')}
-        </div>`;
-
-      const stack=document.createElement('div');
-      stack.className='tr-sub-stack';
-
+      label.innerHTML=`<span class="tr-icon">${tc.icon}</span>
+        <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
+        <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
+      const cvWrap=document.createElement('div');
+      cvWrap.className='tr-cv';
+      const cv=document.createElement('canvas');
+      cvWrap.appendChild(cv);
       const overlay=document.createElement('div');
       overlay.className='tr-overlay';
       const bubble=document.createElement('div');
       bubble.className='tr-bubble';
       overlay.appendChild(bubble);
-
-      row.appendChild(label);row.appendChild(stack);row.appendChild(overlay);
+      row.appendChild(label);row.appendChild(cvWrap);row.appendChild(overlay);
       daw.appendChild(row);
-
-      // 合并行 canvas（用于收起状态绘制）
-      tracks.forEach(tc=>{
-        const subData=STEMS[tc.name]||{};
-        const cv=document.createElement('canvas');
-        cv.style.display='block';cv.style.width='100%';cv.style.height=mergedH+'px';cv.style.flexShrink='0';
-        stack.appendChild(cv);
-        trackRows.push({cv,wrap:stack,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble,mergedH,isMerged:true});
-      });
-
-      // 展开后的独立行（默认 display:none，展开时显示）
-      tracks.forEach(tc=>{
-        const subData=STEMS[tc.name]||{};
-        const expRow=document.createElement('div');
-        expRow.className='tr';expRow.id='tr-exp-'+tc.name;
-        expRow.dataset.stem=stemName; // 用于 toggleStemExpand 查找
-        expRow.style.display='none'; // 默认隐藏
-        const expLabel=document.createElement('div');
-        expLabel.className='tr-label';
-        expLabel.innerHTML=`<span class="tr-icon">${tc.icon}</span>
-          <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
-          <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
-        const expCvWrap=document.createElement('div');expCvWrap.className='tr-cv';
-        const expCv=document.createElement('canvas');expCvWrap.appendChild(expCv);
-        const expOverlay=document.createElement('div');expOverlay.className='tr-overlay';
-        const expBubble=document.createElement('div');expBubble.className='tr-bubble';
-        expOverlay.appendChild(expBubble);
-        expRow.appendChild(expLabel);expRow.appendChild(expCvWrap);expRow.appendChild(expOverlay);
-        daw.appendChild(expRow);
-        trackRows.push({cv:expCv,wrap:expCvWrap,row:expRow,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble:expBubble,isExpanded:true});
-      });
-
-    } else {
-      // ── 独立行（drums 和单条子轨都走这里）──
-      tracks.forEach(tc=>{
-        const subData=STEMS[tc.name]||{};
-        const row=document.createElement('div');
-        row.className='tr';row.id='tr-'+tc.name;
-        const label=document.createElement('div');
-        label.className='tr-label';
-        label.innerHTML=`<span class="tr-icon">${tc.icon}</span>
-          <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
-          <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
-        const cvWrap=document.createElement('div');
-        cvWrap.className='tr-cv';
-        const cv=document.createElement('canvas');
-        cvWrap.appendChild(cv);
-        const overlay=document.createElement('div');
-        overlay.className='tr-overlay';
-        const bubble=document.createElement('div');
-        bubble.className='tr-bubble';
-        overlay.appendChild(bubble);
-        row.appendChild(label);row.appendChild(cvWrap);row.appendChild(overlay);
-        daw.appendChild(row);
-        trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble});
-      });
-    }
+      trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble});
+    });
   });
+
+  // 动态构建 Mute 控制栏（按轨道展开）
+  buildMixerBar();
   resizeTracks();
 }
 
@@ -1011,7 +890,7 @@ function drawTracks(){
     const col=t.tc.color;
     const hits=t.subData.hits||[];
     const curve=t.subData.energy_curve||[];
-    const isMuted=stemMuted[t.stemName]||(soloActive&&soloActive!==t.stemName);
+    const isMuted=trackMuted[t.tc.name]||false;
     const alpha=isMuted?0.1:1;
 
     if(curve.length>0){
@@ -1363,7 +1242,8 @@ function playSFX(trackName, stemName){
     else if(stemName==='piano')     sfxString(0.2);
     else if(trackName==='synth')    sfxDingDong();  // 合成器 → 叮咚钟声
     else if(trackName==='fx')       sfxClick();     // FX/效果 → 哒哒机械声
-    else                            sfxAmbient();   // other → 环境沙沙声
+    else if(trackName==='other_low') sfxAmbient();  // Pad 低频铺底 → 沙沙声
+    else                            sfxAmbient();   // 兜底
   }catch(e){}
 }
 
@@ -1644,22 +1524,33 @@ function ss(v,btn){
   document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
 }
-function toggleStem(btn){
-  const n=btn.dataset.stem;stemMuted[n]=!stemMuted[n];
-  STEM_AUDS[n].muted=stemMuted[n];
-  btn.classList.toggle('muted',stemMuted[n]);btn.classList.toggle('on',!stemMuted[n]);
+// ── Mute 控制（按轨道展开）──
+function buildMixerBar(){
+  const bar = document.getElementById('mixerBar');
+  if(!bar) return;
+  bar.innerHTML = '<span class="mx-label">Mute:</span>';
+  TRACKS_CFG.forEach(tc=>{
+    trackMuted[tc.name] = false;
+    const btn = document.createElement('div');
+    btn.className = 'mx-btn on';
+    btn.dataset.track = tc.name;
+    btn.dataset.stem = tc.stem;
+    btn.onclick = ()=> toggleTrack(btn);
+    btn.innerHTML = `<div class="dot" style="background:${tc.color}"></div>${tc.label.split(' ').pop()}`;
+    bar.appendChild(btn);
+  });
 }
-function soloStem(btn){
-  const n=btn.dataset.solo;
-  if(soloActive===n){
-    soloActive=null;
-    Object.keys(STEM_AUDS).forEach(k=>{STEM_AUDS[k].muted=stemMuted[k];});
-    document.querySelectorAll('[data-solo]').forEach(b=>b.classList.remove('solo'));
-  }else{
-    soloActive=n;
-    Object.keys(STEM_AUDS).forEach(k=>{STEM_AUDS[k].muted=(k!==n);});
-    document.querySelectorAll('[data-solo]').forEach(b=>b.classList.toggle('solo',b.dataset.solo===n));
-  }
+function toggleTrack(btn){
+  const name = btn.dataset.track;
+  const stem = btn.dataset.stem;
+  trackMuted[name] = !trackMuted[name];
+  btn.classList.toggle('muted', trackMuted[name]);
+  btn.classList.toggle('on', !trackMuted[name]);
+  // 同步 stem 级音频 mute：只有当该 stem 下所有轨都 muted 时才 mute 音频
+  const allTracksOfStem = TRACKS_CFG.filter(t=>t.stem===stem);
+  const allMuted = allTracksOfStem.every(t=>trackMuted[t.name]);
+  if(STEM_AUDS[stem]) STEM_AUDS[stem].muted = allMuted;
+  stemMuted[stem] = allMuted;
 }
 function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
 function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
