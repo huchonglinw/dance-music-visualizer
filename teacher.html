@@ -539,8 +539,28 @@ const FFT=4096;
 let _ready=false;
 const DPR=devicePixelRatio||1;
 
-// ── 每轨带通滤波器 + Gain 节点（解决 stem 级 mute 串音）──
-let trackGains = {};  // trackName → GainNode
+// ── 每轨 4 阶级联带通滤波器 + Gain 节点（~48dB/octave 陡峭截止）──
+let trackGains = {};   // trackName → GainNode
+let trackFilters = {}; // trackName → { hpfs:[], lpfs:[], gain }
+
+// Butterworth 4th-order Q 值序列（两对二阶节 = 四阶）
+const BW_Q = [0.5412, 1.3065, 0.5412, 1.3065];
+
+function createFilterChain(ctx, type, freq, stages){
+  const filters = [];
+  for(let i = 0; i < stages; i++){
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.value = freq;
+    f.Q.value = BW_Q[i % BW_Q.length];
+    filters.push(f);
+  }
+  // 串联
+  for(let i = 0; i < filters.length - 1; i++){
+    filters[i].connect(filters[i+1]);
+  }
+  return filters;
+}
 
 function initAudio(){
   if(_ready)return;
@@ -554,6 +574,8 @@ function initAudio(){
       if(!stemTracks[tc.stem]) stemTracks[tc.stem]=[];
       stemTracks[tc.stem].push(tc);
     });
+
+    const FILTER_ORDER = 4; // 4阶 = ~48dB/octave
 
     ['drums','bass','guitar','piano','vocals','other'].forEach(stemName=>{
       const src = actx.createMediaElementSource(STEM_AUDS[stemName]);
@@ -569,29 +591,28 @@ function initAudio(){
       const hasBandTracks = tracks.some(tc => tc._loHz != null && tc._hiHz != null);
 
       if(hasBandTracks && tracks.length > 1){
-        // ── 多轨 stem：每轨一个 BPF → Gain → merger ──
-        // src → 各子轨 BPF → Gain → merger → analyser → dest
+        // ── 多轨 stem：每轨 4阶HPF + 4阶LPF → Gain → merger ──
         const merger = actx.createGain();
         merger.gain.value = 1;
 
         tracks.forEach(tc => {
           if(tc._loHz != null && tc._hiHz != null){
-            // 带频段的轨道：用双重滤波器（高通+低通）精确截断
-            const hpf = actx.createBiquadFilter();
-            hpf.type = 'highpass'; hpf.frequency.value = tc._loHz; hpf.Q.value = 0.7;
-            const lpf = actx.createBiquadFilter();
-            lpf.type = 'lowpass'; lpf.frequency.value = tc._hiHz; lpf.Q.value = 0.7;
+            // 4 阶高通 + 4 阶低通 = ~48dB/octave 截止
+            const hpfs = createFilterChain(actx, 'highpass', tc._loHz, FILTER_ORDER);
+            const lpfs = createFilterChain(actx, 'lowpass',  tc._hiHz, FILTER_ORDER);
             const gain = actx.createGain();
             gain.gain.value = 1;
 
-            src.connect(hpf);
-            hpf.connect(lpf);
-            lpf.connect(gain);
+            // 路由：src → HPF[0]→...→HPF[3] → LPF[0]→...→LPF[3] → gain → merger
+            src.connect(hpfs[0]);
+            hpfs[hpfs.length-1].connect(lpfs[0]);
+            lpfs[lpfs.length-1].connect(gain);
             gain.connect(merger);
 
             trackGains[tc.name] = gain;
+            trackFilters[tc.name] = { hpfs, lpfs, gain };
           } else {
-            // 全频段轨道（不应出现在多轨stem中，但兜底）
+            // 全频段轨道（兜底）
             const gain = actx.createGain();
             gain.gain.value = 1;
             src.connect(gain);
@@ -604,7 +625,7 @@ function initAudio(){
         analyser.connect(actx.destination);
 
       } else {
-        // ── 单轨 stem（guitar/piano）或无频段信息：直通 ──
+        // ── 单轨 stem（guitar/piano）：直通 ──
         const gain = actx.createGain();
         gain.gain.value = 1;
         src.connect(gain);
@@ -621,7 +642,7 @@ function initAudio(){
       }
     });
     _ready=true;
-    console.log('🎛 Audio: 带通滤波器路由已初始化，', Object.keys(trackGains).length, '个轨道增益节点');
+    console.log('🎛 Audio: 4阶带通滤波器路由已初始化 (~48dB/oct)，', Object.keys(trackGains).length, '轨');
   }catch(e){console.warn('AudioCtx:',e)}
 }
 
@@ -1676,10 +1697,14 @@ function syncStemMute(stem){
   // stem 音频 mute：只有全部子轨 muted 才 mute 音频源
   if(STEM_AUDS[stem]) STEM_AUDS[stem].muted = allMuted;
   stemMuted[stem] = allMuted;
-  // per-track gain 控制：精确频段静音
+  // per-track gain 控制：精确频段静音（使用 ramp 避免爆音）
   allTracksOfStem.forEach(tc=>{
     const g = trackGains[tc.name];
-    if(g) g.gain.value = trackMuted[tc.name] ? 0 : 1;
+    if(g){
+      const t = actx ? actx.currentTime : 0;
+      g.gain.cancelScheduledValues(t);
+      g.gain.setTargetAtTime(trackMuted[tc.name] ? 0 : 1, t, 0.015);
+    }
   });
 }
 
@@ -1689,9 +1714,13 @@ function muteAll(muted){
     trackMuted[tc.name] = muted;
     const btn = document.getElementById('mx-'+tc.name);
     if(btn){ btn.classList.toggle('muted', muted); btn.classList.toggle('on', !muted); btn.classList.remove('solo'); }
-    // 同步 gain 节点
+    // 同步 gain 节点（ramp 防爆音）
     const g = trackGains[tc.name];
-    if(g) g.gain.value = muted ? 0 : 1;
+    if(g){
+      const ct = actx ? actx.currentTime : 0;
+      g.gain.cancelScheduledValues(ct);
+      g.gain.setTargetAtTime(muted ? 0 : 1, ct, 0.015);
+    }
   });
   Object.keys(STEM_AUDS).forEach(k=>{ STEM_AUDS[k].muted = muted; stemMuted[k] = muted; });
 }
@@ -1709,9 +1738,13 @@ function soloTrack(name){
       btn.classList.toggle('on', isSolo);
       btn.classList.toggle('solo', isSolo);
     }
-    // gain 节点：只开 solo 轨
+    // gain 节点：只开 solo 轨（ramp 防爆音）
     const g = trackGains[t.name];
-    if(g) g.gain.value = isSolo ? 1 : 0;
+    if(g){
+      const ct = actx ? actx.currentTime : 0;
+      g.gain.cancelScheduledValues(ct);
+      g.gain.setTargetAtTime(isSolo ? 1 : 0, ct, 0.015);
+    }
   });
   // 音频源：所有 stem 都不 mute（让滤波器去控制）
   // 只 mute 完全不相关的 stem（非 solo 轨所在 stem）
@@ -1724,10 +1757,14 @@ function soloTrack(name){
 function exitSolo(){
   _soloTrack = null;
   muteAll(false);
-  // 确保所有 gain 恢复
+  // 确保所有 gain 恢复（ramp 防爆音）
   TRACKS_CFG.forEach(tc=>{
     const g = trackGains[tc.name];
-    if(g) g.gain.value = 1;
+    if(g){
+      const ct = actx ? actx.currentTime : 0;
+      g.gain.cancelScheduledValues(ct);
+      g.gain.setTargetAtTime(1, ct, 0.015);
+    }
   });
 }
 function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
