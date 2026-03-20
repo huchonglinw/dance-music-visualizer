@@ -3,213 +3,162 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🕺 街舞音乐教学 · Katuchat - Watercolor</title>
+<title>🕺 街舞音乐教学 · 多轨分析器</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-font-smoothing:antialiased}
 :root{
-  --bg:#05050e;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.07);
-  --txt:#e8e8f2;--dim:#3a3a55;
-  --sub:#ff2d55;--kick:#ff3b30;--snare:#ff9f0a;--hihat:#ffd60a;
-  --vocal:#30d158;--bass:#0a84ff;--sfx:#bf5af2;--pink:#ff6ec7;
-  --scratch:#00e5ff;--vinyl:#7e7e9a;
+  --bg:#05050e;--border:rgba(255,255,255,.07);--dim:#3a3a55;--txt:#e8e8f2;
 }
 html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
   font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif}
 body{display:flex;flex-direction:column}
 
-/* ══ HEADER ══════════════════════════════════════════════ */
+/* ═══ HEADER ═══ */
 .hdr{
   display:flex;align-items:center;justify-content:space-between;
-  padding:8px 16px;border-bottom:1px solid var(--border);
-  background:rgba(5,5,14,.92);backdrop-filter:blur(20px);
-  flex-shrink:0;z-index:20;
+  padding:6px 14px;border-bottom:1px solid var(--border);
+  background:rgba(5,5,14,.92);backdrop-filter:blur(20px);flex-shrink:0;z-index:20;height:40px;
 }
-.logo{width:30px;height:30px;border-radius:8px;
+.logo{width:28px;height:28px;border-radius:7px;
   background:linear-gradient(135deg,#ff3b30,#bf5af2);
-  display:flex;align-items:center;justify-content:center;font-size:.85rem;
-  box-shadow:0 0 14px rgba(255,59,48,.4);margin-right:8px}
-.ttl{font-size:.88rem;font-weight:700}
-.sbt{font-size:.58rem;color:var(--dim);margin-top:1px}
-.song-chip{
-  display:flex;align-items:center;gap:6px;
-  background:rgba(255,110,199,.08);border:1px solid rgba(255,110,199,.2);
-  border-radius:16px;padding:4px 12px;font-size:.72rem;font-weight:600;color:var(--pink)
-}
-.bpm-chip{
-  background:rgba(255,59,48,.12);border:1px solid rgba(255,59,48,.25);
-  color:var(--kick);font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:7px;
-}
-.key-chip{
-  background:rgba(10,132,255,.1);border:1px solid rgba(10,132,255,.25);
-  color:var(--bass);font-size:.65rem;font-weight:600;padding:2px 8px;border-radius:7px;
-}
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;
+  box-shadow:0 0 12px rgba(255,59,48,.4);margin-right:7px}
+.ttl{font-size:.82rem;font-weight:700}
+.sbt{font-size:.52rem;color:var(--dim);margin-top:1px}
+.chips{display:flex;align-items:center;gap:6px}
+.chip{padding:3px 10px;border-radius:12px;font-size:.62rem;font-weight:600;
+  border:1px solid rgba(255,255,255,.15)}
+.chip-song{background:rgba(255,110,199,.08);border-color:rgba(255,110,199,.25);color:#ff6ec7}
+.chip-bpm{background:rgba(255,59,48,.1);border-color:rgba(255,59,48,.25);color:#ff3b30}
+.chip-key{background:rgba(10,132,255,.1);border-color:rgba(10,132,255,.25);color:#0a84ff}
 
-/* ══ MAIN GRID ═══════════════════════════════════════════ */
-.main{flex:1;display:grid;grid-template-columns:1fr 300px;overflow:hidden}
+/* ═══ MAIN LAYOUT ═══ */
+.main{flex:1;display:grid;grid-template-columns:1fr 260px;overflow:hidden}
 
-/* ══ LEFT ════════════════════════════════════════════════ */
+/* ═══ LEFT: 频谱 + 多轨 ═══ */
 .left{display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
 
-/* 声谱图（瀑布图）*/
-.sgram-wrap{
-  height:160px;position:relative;flex-shrink:0;
-  border-bottom:1px solid var(--border);background:#020208;overflow:hidden;
-}
-.sgram-label{
-  position:absolute;top:0;left:0;bottom:0;width:52px;
-  display:flex;flex-direction:column;justify-content:space-between;
-  padding:3px 6px;z-index:5;background:rgba(2,2,8,.7);
-  border-right:1px solid rgba(255,255,255,.05);
-}
-.hz-lbl{font-size:.5rem;color:rgba(255,255,255,.25);font-family:monospace}
-#sgram-cv{position:absolute;left:52px;top:0;right:0;bottom:0}
-.sgram-title{
-  position:absolute;top:4px;right:8px;
-  font-size:.58rem;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.8px;
-  pointer-events:none;
-}
-/* 频率区段背景线 */
-.sgram-bands{
-  position:absolute;left:52px;top:0;right:0;bottom:0;pointer-events:none;z-index:4;
-}
-
-/* 实时频谱柱 */
-.spectrum-wrap{
-  flex:1;position:relative;overflow:hidden;background:#03030a;
-}
+/* 实时频谱（紧凑） */
+.spec-row{height:140px;flex-shrink:0;position:relative;background:#03030a;border-bottom:1px solid var(--border)}
 #spec-cv{width:100%;height:100%;display:block}
-
-/* 教学提示 */
-.cue{
-  position:absolute;top:10px;left:50%;transform:translateX(-50%);
-  padding:7px 18px;border-radius:10px;
-  font-size:.9rem;font-weight:700;letter-spacing:.2px;
-  pointer-events:none;display:flex;align-items:center;gap:7px;
+.cue{position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  padding:5px 14px;border-radius:8px;font-size:.78rem;font-weight:700;
+  pointer-events:none;display:flex;align-items:center;gap:6px;
   background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.08);
-  color:rgba(255,255,255,.35);white-space:nowrap;backdrop-filter:blur(10px);
-  transition:all .15s;
-}
+  color:rgba(255,255,255,.3);white-space:nowrap;backdrop-filter:blur(10px)}
 
-/* 频率区段色块标注 */
-.freq-zones{
-  position:absolute;bottom:0;left:0;right:0;
-  display:flex;height:16px;pointer-events:none;z-index:5;
-}
-.fz{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  font-size:.5rem;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
-  border-right:1px solid rgba(255,255,255,.05);
-}
+/* ═══ 多轨 DAW 视图（核心改造） ═══ */
+.stems-area{flex:1;overflow-y:auto;overflow-x:hidden;background:#020208;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
+.stems-area::-webkit-scrollbar{width:3px}
+.stems-area::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
 
-/* 波形 + 进度 */
-.wf-row{
-  height:72px;background:#020208;border-top:1px solid var(--border);
-  position:relative;flex-shrink:0;overflow:hidden;
+.stem-row{
+  display:flex;align-items:stretch;height:38px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .1s;
 }
+.stem-row:hover{background:rgba(255,255,255,.02)}
+.stem-row.flash{background:rgba(255,255,255,.06)}
+
+/* 轨道标签（左侧固定） */
+.stem-label{
+  width:100px;flex-shrink:0;display:flex;align-items:center;gap:4px;
+  padding:0 8px;border-right:1px solid rgba(255,255,255,.05);
+  background:rgba(5,5,14,.5);
+}
+.stem-icon{font-size:.75rem;width:16px;text-align:center}
+.stem-name{font-size:.58rem;font-weight:600;line-height:1.1;flex:1}
+.stem-hz{font-size:.46rem;color:rgba(255,255,255,.2);font-family:monospace}
+
+/* 轨道内容（能量条 + 事件标记） */
+.stem-track{flex:1;position:relative;overflow:hidden}
+.stem-track canvas{width:100%;height:100%;display:block}
+
+/* ═══ 波形进度条 ═══ */
+.wf-row{height:50px;background:#020208;border-top:1px solid var(--border);
+  position:relative;flex-shrink:0}
 #wf-cv{width:100%;height:100%;display:block;cursor:pointer}
 .ph{position:absolute;top:0;bottom:0;width:2px;left:0;
   background:rgba(255,255,255,.9);box-shadow:0 0 8px #fff;pointer-events:none;z-index:5}
-.trow{
-  position:absolute;bottom:3px;left:0;right:0;
-  display:flex;justify-content:space-between;padding:0 8px;
-  pointer-events:none;
-}
-.tlbl{font-size:.6rem;font-family:monospace;color:rgba(255,255,255,.22)}
+.trow{position:absolute;bottom:2px;left:0;right:0;display:flex;justify-content:space-between;
+  padding:0 6px;pointer-events:none}
+.tlbl{font-size:.55rem;font-family:monospace;color:rgba(255,255,255,.2)}
 
-/* 控制栏 */
-.ctrl{
-  height:48px;background:rgba(3,3,10,.95);border-top:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 12px;flex-shrink:0;
-}
-.cc{display:flex;align-items:center;gap:8px}
-.cr{display:flex;align-items:center;gap:7px}
-.pbtn{
-  width:40px;height:40px;border-radius:50%;border:none;
+/* ═══ 控制栏 ═══ */
+.ctrl{height:44px;background:rgba(3,3,10,.95);border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 10px;flex-shrink:0}
+.cc{display:flex;align-items:center;gap:6px}
+.cr{display:flex;align-items:center;gap:6px}
+.pbtn{width:36px;height:36px;border-radius:50%;border:none;
   background:linear-gradient(135deg,#ff3b30,#bf5af2);color:#fff;
-  font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 0 18px rgba(255,59,48,.35);transition:all .13s;
-}
+  font-size:.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 16px rgba(255,59,48,.35);transition:all .12s}
 .pbtn:hover{transform:scale(1.07)}.pbtn:active{transform:scale(.93)}
-.sk{width:28px;height:28px;border-radius:50%;
-  border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
-  color:rgba(255,255,255,.45);font-size:.68rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:all .13s}
+.sk{width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);color:rgba(255,255,255,.4);
+  font-size:.62rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s}
 .sk:hover{background:rgba(255,255,255,.1);color:#fff}
-.spds{display:flex;gap:3px}
-.spd{padding:3px 8px;border-radius:6px;
-  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);
-  color:rgba(255,255,255,.3);font-size:.65rem;font-weight:600;cursor:pointer;transition:all .1s}
-.spd.on{background:rgba(10,132,255,.15);border-color:var(--bass);color:var(--bass)}
-.vol-w{display:flex;align-items:center;gap:5px;font-size:.62rem;color:var(--dim)}
-.vol{-webkit-appearance:none;width:60px;height:3px;border-radius:2px;
+.spds{display:flex;gap:2px}
+.spd{padding:2px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);color:rgba(255,255,255,.28);
+  font-size:.6rem;font-weight:600;cursor:pointer;transition:all .1s}
+.spd.on{background:rgba(10,132,255,.15);border-color:#0a84ff;color:#0a84ff}
+.vol-w{display:flex;align-items:center;gap:4px;font-size:.58rem;color:var(--dim)}
+.vol{-webkit-appearance:none;width:55px;height:3px;border-radius:2px;
   background:rgba(255,255,255,.1);cursor:pointer;outline:none}
-.vol::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;
-  border-radius:50%;background:#fff}
-.ctxt{font-size:.68rem;font-family:monospace;color:rgba(255,255,255,.35);width:36px;text-align:center}
+.vol::-webkit-slider-thumb{-webkit-appearance:none;width:8px;height:8px;border-radius:50%;background:#fff}
+.ctxt{font-size:.65rem;font-family:monospace;color:rgba(255,255,255,.3);width:34px;text-align:center}
 
-/* ══ RIGHT PANEL ═════════════════════════════════════════ */
+/* ═══ RIGHT PANEL ═══ */
 .right{display:flex;flex-direction:column;overflow:hidden;background:rgba(3,3,10,.6)}
 
 /* 8拍 */
-.beat-sec{padding:10px 12px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
-.sec-lbl{font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.9px;
-  margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
-.barc{font-size:.65rem;color:var(--pink);font-weight:700}
-.bgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
-.bx{
-  aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;
-  font-size:.75rem;font-weight:800;
-  background:rgba(255,255,255,.03);border:1.5px solid rgba(255,255,255,.06);
-  color:rgba(255,255,255,.13);transition:all .06s ease;position:relative;
-}
+.beat-sec{padding:8px 10px 6px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sec-lbl{font-size:.52rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:5px;display:flex;justify-content:space-between}
+.barc{font-size:.62rem;color:#ff6ec7;font-weight:700}
+.bgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.bx{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:800;background:rgba(255,255,255,.03);
+  border:1.5px solid rgba(255,255,255,.06);color:rgba(255,255,255,.12);transition:all .06s}
 .bx.on{color:#fff;transform:scale(1.1)}
-.bx.kick.on{background:rgba(255,59,48,.35);border-color:var(--kick);box-shadow:0 0 14px rgba(255,59,48,.6)}
-.bx.snare.on{background:rgba(255,159,10,.3);border-color:var(--snare);box-shadow:0 0 11px rgba(255,159,10,.5)}
-.bx.hihat.on{background:rgba(255,214,10,.2);border-color:var(--hihat);box-shadow:0 0 9px rgba(255,214,10,.4)}
-.bx.bar1.on{background:rgba(255,110,199,.28);border-color:var(--pink);box-shadow:0 0 13px rgba(255,110,199,.55)}
+.bx.kick.on{background:rgba(255,59,48,.35);border-color:#ff3b30;box-shadow:0 0 12px rgba(255,59,48,.6)}
+.bx.snare.on{background:rgba(255,159,10,.3);border-color:#ff9f0a;box-shadow:0 0 10px rgba(255,159,10,.5)}
+.bx.hihat.on{background:rgba(255,214,10,.2);border-color:#ffd60a;box-shadow:0 0 8px rgba(255,214,10,.4)}
+.bx.bar1.on{background:rgba(255,110,199,.28);border-color:#ff6ec7;box-shadow:0 0 12px rgba(255,110,199,.55)}
 
-/* 分轨电平表（细分9轨） */
-.vu-sec{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
-.vu-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-.vu-lbl{font-size:.58rem;font-weight:600;width:44px;flex-shrink:0;text-align:right;
-  font-family:monospace;letter-spacing:.2px}
-.vu-wrap{flex:1;height:8px;background:rgba(255,255,255,.04);border-radius:2px;overflow:visible;position:relative}
-.vu-bar{height:100%;border-radius:2px;width:0;transition:width .04s linear;position:relative}
-.vu-pk{position:absolute;top:-1px;bottom:-1px;width:2px;background:rgba(255,255,255,.7);
-  border-radius:1px;transition:left .6s ease-out;left:0}
-.vu-val{font-size:.5rem;font-family:monospace;color:rgba(255,255,255,.2);width:24px;
-  text-align:right;flex-shrink:0}
+/* 活跃轨道指示器 */
+.active-stems{padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.as-title{font-size:.52rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.as-grid{display:flex;flex-wrap:wrap;gap:4px}
+.as-item{
+  display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:6px;
+  font-size:.58rem;font-weight:600;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);
+  color:rgba(255,255,255,.2);transition:all .08s;
+}
+.as-item.on{color:#fff}
 
 /* 事件日志 */
-.ev-sec{flex:1;overflow-y:auto;padding:6px 10px 10px;
+.ev-sec{flex:1;overflow-y:auto;padding:6px 8px 8px;
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.08) transparent}
 .ev-sec::-webkit-scrollbar{width:2px}
 .ev-sec::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:1px}
-.ev-ttl{font-size:.55rem;color:var(--dim);text-transform:uppercase;letter-spacing:.9px;
-  margin-bottom:7px;padding-left:2px}
-.ev-item{
-  display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:7px;
-  margin-bottom:2px;opacity:.35;transition:all .2s;border:1px solid transparent;
-}
-.ev-item.passed{opacity:.5}
+.ev-ttl{font-size:.52rem;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.ev-item{display:flex;align-items:center;gap:5px;padding:4px 6px;border-radius:6px;
+  margin-bottom:2px;opacity:.3;transition:all .2s;border:1px solid transparent}
+.ev-item.passed{opacity:.45}
 .ev-item.active{opacity:1;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1)}
-.ev-t{font-size:.58rem;font-family:monospace;color:var(--dim);width:32px;flex-shrink:0}
-.ev-i{font-size:.82rem;width:15px;text-align:center}
-.ev-tx{font-size:.7rem;flex:1;line-height:1.3}
+.ev-t{font-size:.55rem;font-family:monospace;color:var(--dim);width:30px;flex-shrink:0}
+.ev-i{font-size:.78rem;width:14px;text-align:center}
+.ev-tx{font-size:.65rem;flex:1;line-height:1.2}
 .ev-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 
-/* 图例 */
-.leg-sec{padding:6px 12px;border-top:1px solid var(--border);flex-shrink:0;
-  display:flex;flex-wrap:wrap;gap:6px}
-.lg{display:flex;align-items:center;gap:3px;font-size:.57rem;color:rgba(255,255,255,.28)}
-.ld{width:6px;height:6px;border-radius:50%}
-
-/* 全局光晕 */
+/* glow */
 .glow{position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(ellipse 45% 45% at 22% 60%,rgba(255,45,85,.04),transparent),
-    radial-gradient(ellipse 35% 35% at 78% 28%,rgba(10,132,255,.04),transparent)}
+  background:radial-gradient(ellipse 40% 40% at 20% 55%,rgba(255,45,85,.03),transparent),
+    radial-gradient(ellipse 30% 30% at 80% 25%,rgba(10,132,255,.03),transparent)}
 </style>
 </head>
 <body>
@@ -220,70 +169,35 @@ body{display:flex;flex-direction:column}
 <div class="hdr">
   <div style="display:flex;align-items:center">
     <div class="logo">🕺</div>
-    <div><div class="ttl">街舞音乐教学分析器</div><div class="sbt">声谱图 · 实时频谱 · 鼓点拆分 · 9轨电平</div></div>
+    <div><div class="ttl">街舞音乐教学 · 多轨分析器</div><div class="sbt">10轨分离 · 每种声音独立可见</div></div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px">
-    <div class="song-chip">🎵 <span id="sname">Katuchat · Watercolor</span></div>
-    <div class="bpm-chip" id="bpm-chip">— BPM</div>
-    <div class="key-chip" id="key-chip">—</div>
+  <div class="chips">
+    <div class="chip chip-song" id="chip-song">🎵 Katuchat · Watercolor</div>
+    <div class="chip chip-bpm" id="chip-bpm">— BPM</div>
+    <div class="chip chip-key" id="chip-key">—</div>
   </div>
 </div>
 
 <!-- MAIN -->
 <div class="main">
-
-<!-- LEFT -->
 <div class="left">
 
-  <!-- 声谱图瀑布 -->
-  <div class="sgram-wrap" id="sgram-wrap">
-    <div class="sgram-label" id="hz-labels">
-      <span class="hz-lbl">20kHz</span>
-      <span class="hz-lbl">10k</span>
-      <span class="hz-lbl">5k</span>
-      <span class="hz-lbl">2k</span>
-      <span class="hz-lbl">1k</span>
-      <span class="hz-lbl">500</span>
-      <span class="hz-lbl">250</span>
-      <span class="hz-lbl">80</span>
-      <span class="hz-lbl">20</span>
-    </div>
-    <canvas id="sgram-cv"></canvas>
-    <div class="sgram-title">SPECTROGRAM 声谱图</div>
-  </div>
-
-  <!-- 实时频谱 -->
-  <div class="spectrum-wrap" id="spec-wrap">
+  <!-- 实时频谱（紧凑版） -->
+  <div class="spec-row" id="spec-wrap">
     <canvas id="spec-cv"></canvas>
-
-    <!-- 教学提示 -->
-    <div class="cue" id="cue">
-      <span id="cue-icon">🎯</span><span id="cue-txt">点击 ▶ 开始</span>
-    </div>
-
-    <!-- 底部频率色块 -->
-    <div class="freq-zones">
-      <div class="fz" style="color:rgba(255,45,85,.6);background:rgba(255,45,85,.06)">Sub</div>
-      <div class="fz" style="color:rgba(255,59,48,.6);background:rgba(255,59,48,.06)">Kick</div>
-      <div class="fz" style="color:rgba(255,120,10,.6);background:rgba(255,120,10,.06)">Low</div>
-      <div class="fz" style="color:rgba(255,159,10,.6);background:rgba(255,159,10,.06)">Snare</div>
-      <div class="fz" style="color:rgba(255,214,10,.6);background:rgba(255,214,10,.06)">Mid</div>
-      <div class="fz" style="color:rgba(52,199,89,.6);background:rgba(52,199,89,.06)">Vocal</div>
-      <div class="fz" style="color:rgba(48,209,88,.6);background:rgba(48,209,88,.06)">Hi</div>
-      <div class="fz" style="color:rgba(0,229,255,.6);background:rgba(0,229,255,.06)">HiHat</div>
-      <div class="fz" style="color:rgba(191,90,242,.6);background:rgba(191,90,242,.06)">Scratch</div>
-      <div class="fz" style="color:rgba(168,216,234,.6);background:rgba(168,216,234,.06)">Air</div>
-    </div>
+    <div class="cue" id="cue"><span id="cue-icon">🎯</span><span id="cue-txt">点击 ▶ 开始</span></div>
   </div>
 
-  <!-- 波形 + 进度条 -->
+  <!-- ★★★ 多轨 DAW 视图 ★★★ -->
+  <div class="stems-area" id="stems-area">
+    <!-- JS 动态生成 -->
+  </div>
+
+  <!-- 波形进度 -->
   <div class="wf-row">
     <canvas id="wf-cv" onclick="seekClick(event,this)"></canvas>
     <div class="ph" id="ph"></div>
-    <div class="trow">
-      <span class="tlbl" id="tc">0:00</span>
-      <span class="tlbl" id="tt">3:33</span>
-    </div>
+    <div class="trow"><span class="tlbl" id="tc">0:00</span><span class="tlbl" id="tt">3:33</span></div>
   </div>
 
   <!-- 控制栏 -->
@@ -297,8 +211,7 @@ body{display:flex;flex-direction:column}
       <button class="sk" onclick="skipB(8)">⏭</button>
     </div>
     <div class="cr">
-      <div class="vol-w">🔊<input class="vol" type="range" min="0" max="1" step=".01" value="1"
-        oninput="AUD.volume=+this.value"></div>
+      <div class="vol-w">🔊<input class="vol" type="range" min="0" max="1" step=".01" value="1" oninput="AUD.volume=+this.value"></div>
       <div class="spds">
         <div class="spd" onclick="ss(.5,this)">½x</div>
         <div class="spd" onclick="ss(.75,this)">¾x</div>
@@ -310,7 +223,6 @@ body{display:flex;flex-direction:column}
 
 <!-- RIGHT -->
 <div class="right">
-  <!-- 8拍 -->
   <div class="beat-sec">
     <div class="sec-lbl">8 BEAT COUNTER <span class="barc">第<span id="bnum">—</span>组</span></div>
     <div class="bgrid" id="bgrid">
@@ -321,63 +233,10 @@ body{display:flex;flex-direction:column}
     </div>
   </div>
 
-  <!-- 9轨电平表（细分拆开） -->
-  <div class="vu-sec">
-    <div class="sec-lbl">STEM LEVELS · 9 频段</div>
-    <!-- Sub Bass 20-60Hz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#ff2d55">SUB</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb0" style="background:linear-gradient(90deg,#ff2d55,#ff5577)"></div><div class="vu-pk" id="vp0"></div></div>
-      <span class="vu-val" id="vv0">0</span>
-    </div>
-    <!-- Kick 60-200Hz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#ff3b30">KICK</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb1" style="background:linear-gradient(90deg,#ff3b30,#ff7730)"></div><div class="vu-pk" id="vp1"></div></div>
-      <span class="vu-val" id="vv1">0</span>
-    </div>
-    <!-- Low Mid 200-500Hz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#ff8800">LOW</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb2" style="background:linear-gradient(90deg,#ff7700,#ffaa00)"></div><div class="vu-pk" id="vp2"></div></div>
-      <span class="vu-val" id="vv2">0</span>
-    </div>
-    <!-- Snare 500-1kHz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#ff9f0a">SNARE</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb3" style="background:linear-gradient(90deg,#ff9f0a,#ffd60a)"></div><div class="vu-pk" id="vp3"></div></div>
-      <span class="vu-val" id="vv3">0</span>
-    </div>
-    <!-- Mid 1-2kHz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#ffd60a">MID</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb4" style="background:linear-gradient(90deg,#ffd60a,#ffe55a)"></div><div class="vu-pk" id="vp4"></div></div>
-      <span class="vu-val" id="vv4">0</span>
-    </div>
-    <!-- Vocal 2-4kHz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#34c759">VOCAL</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb5" style="background:linear-gradient(90deg,#34c759,#30f070)"></div><div class="vu-pk" id="vp5"></div></div>
-      <span class="vu-val" id="vv5">0</span>
-    </div>
-    <!-- Hi 4-8kHz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#30d158">HI-MID</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb6" style="background:linear-gradient(90deg,#30d158,#60ff88)"></div><div class="vu-pk" id="vp6"></div></div>
-      <span class="vu-val" id="vv6">0</span>
-    </div>
-    <!-- HiHat 8-14kHz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#00e5ff">HI-HAT</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb7" style="background:linear-gradient(90deg,#00e5ff,#80f8ff)"></div><div class="vu-pk" id="vp7"></div></div>
-      <span class="vu-val" id="vv7">0</span>
-    </div>
-    <!-- Scratch/Air 14-20kHz -->
-    <div class="vu-row">
-      <span class="vu-lbl" style="color:#bf5af2">SCRATCH</span>
-      <div class="vu-wrap"><div class="vu-bar" id="vb8" style="background:linear-gradient(90deg,#bf5af2,#df8aff)"></div><div class="vu-pk" id="vp8"></div></div>
-      <span class="vu-val" id="vv8">0</span>
-    </div>
+  <!-- 活跃轨道指示器 -->
+  <div class="active-stems">
+    <div class="as-title">当前活跃音效 · ACTIVE STEMS</div>
+    <div class="as-grid" id="as-grid"><!-- JS --></div>
   </div>
 
   <!-- 事件日志 -->
@@ -385,495 +244,476 @@ body{display:flex;flex-direction:column}
     <div class="ev-ttl">教学事件 · TIMELINE</div>
     <div id="evlist"></div>
   </div>
-
-  <!-- 图例 -->
-  <div class="leg-sec">
-    <div class="lg"><div class="ld" style="background:#ff3b30"></div>Kick</div>
-    <div class="lg"><div class="ld" style="background:#ff9f0a"></div>Snare</div>
-    <div class="lg"><div class="ld" style="background:#ffd60a"></div>HiHat</div>
-    <div class="lg"><div class="ld" style="background:#30d158"></div>Vocal</div>
-    <div class="lg"><div class="ld" style="background:#00e5ff"></div>Scratch</div>
-    <div class="lg"><div class="ld" style="background:#bf5af2"></div>FX/SFX</div>
-  </div>
-</div><!-- /right -->
+</div>
 </div><!-- /main -->
 
 <script>
 // ══════════════════════════════════════════════════════════════
-// Web Audio API 初始化
+// Web Audio API
 // ══════════════════════════════════════════════════════════════
 const AUD = document.getElementById('aud');
-let actx, analyser, src;
-let freqData, timeData;
-const FFT_SIZE = 4096;   // 大 FFT → 更细的频率分辨率（≈10.7Hz/bin@44100)
+let actx, analyser, src, freqData, timeData;
+const FFT = 4096;
 let _ready = false;
 
-function initACtx() {
-  if (_ready) return;
-  try {
-    actx    = new (window.AudioContext || window.webkitAudioContext)();
-    analyser= actx.createAnalyser();
-    analyser.fftSize = FFT_SIZE;
-    analyser.smoothingTimeConstant = 0.72;
-    analyser.minDecibels = -95;
-    analyser.maxDecibels = -5;
-    src = actx.createMediaElementSource(AUD);
+function initA(){
+  if(_ready)return;
+  try{
+    actx=new(window.AudioContext||window.webkitAudioContext)();
+    analyser=actx.createAnalyser();
+    analyser.fftSize=FFT;
+    analyser.smoothingTimeConstant=0.72;
+    analyser.minDecibels=-95;
+    analyser.maxDecibels=-5;
+    src=actx.createMediaElementSource(AUD);
     src.connect(analyser);
     analyser.connect(actx.destination);
-    freqData = new Uint8Array(analyser.frequencyBinCount);
-    timeData  = new Uint8Array(FFT_SIZE);
-    _ready = true;
-  } catch(e) { console.error('AudioCtx:', e); }
+    freqData=new Uint8Array(analyser.frequencyBinCount);
+    timeData=new Uint8Array(FFT);
+    _ready=true;
+  }catch(e){console.error(e)}
 }
 
 // ══════════════════════════════════════════════════════════════
-// 节拍数据
+// 数据
 // ══════════════════════════════════════════════════════════════
-let BEATS=[], BAR_STARTS=[], EVENTS=[], KICK=[], SNARE=[], HIHAT=[];
-let BPM=129.2, TOTAL=213, MSTART=0.05;
+let BEATS=[],BAR_STARTS=[],EVENTS=[],KICK=[],SNARE=[],HIHAT=[];
+let STEMS_CFG=[],STEMS={};
+let BPM=129.2,TOTAL=213,MSTART=0.05;
+const DPR=devicePixelRatio||1;
 
-async function loadJSON() {
-  try {
-    const d = await (await fetch('beats/watercolor.json')).json();
+async function loadJSON(){
+  try{
+    const d=await(await fetch('beats/watercolor.json')).json();
     BPM=d.bpm||129.2; TOTAL=d.duration||213; MSTART=d.music_start||0.05;
     BEATS=d.beats||[]; BAR_STARTS=d.bar_starts||[];
     KICK=(d.drum_events||{}).kick||[];
     SNARE=(d.drum_events||{}).snare||[];
     HIHAT=(d.drum_events||{}).hihat||[];
     EVENTS=(d.events||[]).filter(e=>e.is_cue!==false).map((e,i)=>({...e,idx:i,el:null}));
-    document.getElementById('bpm-chip').textContent = BPM+' BPM';
-    document.getElementById('key-chip').textContent = d.key||'—';
-    if (d.artist) document.getElementById('sname').textContent = `${d.artist} · ${d.song}`;
-    document.getElementById('tt').textContent = fmt(TOTAL);
-    buildLog(); drawStaticWF();
-  } catch(e) { console.warn('JSON load:', e.message); buildLog(); }
-}
-
-function buildLog() {
-  const list = document.getElementById('evlist'); list.innerHTML='';
-  EVENTS.forEach((e,i)=>{
-    const el=document.createElement('div'); el.className='ev-item'; el.id='ei'+i;
-    el.innerHTML=`<span class="ev-t">${e.time.toFixed(1)}s</span><span class="ev-i">${e.icon||'🎵'}</span><span class="ev-tx">${e.desc||e.label||''}</span><div class="ev-dot" style="background:${e.color||'#888'}"></div>`;
-    list.appendChild(el); e.el=el;
-  });
+    STEMS_CFG=d.stems_config||[];
+    STEMS=d.stems||{};
+    document.getElementById('chip-bpm').textContent=BPM+' BPM';
+    document.getElementById('chip-key').textContent=d.key||'—';
+    if(d.artist)document.getElementById('chip-song').textContent=`🎵 ${d.artist} · ${d.song}`;
+    document.getElementById('tt').textContent=fmt(TOTAL);
+    buildStemRows();
+    buildActiveStems();
+    buildLog();
+    drawStaticWF();
+  }catch(e){console.warn('JSON:',e.message);buildLog();}
 }
 
 // ══════════════════════════════════════════════════════════════
-// Canvas 尺寸
+// ★ 多轨 DAW 视图：每种声音独立一行
 // ══════════════════════════════════════════════════════════════
-const specCv=document.getElementById('spec-cv'),
-      sgramCv=document.getElementById('sgram-cv'),
-      wfCv=document.getElementById('wf-cv');
-let SW,SH,GW,GH,WW,WH;
-const DPR=devicePixelRatio||1;
+let stemCanvases = [];
+let stemRows = [];
 
-function resize() {
-  const sw=document.getElementById('spec-wrap');
-  SW=sw.offsetWidth; SH=sw.offsetHeight;
-  specCv.width=SW*DPR; specCv.height=SH*DPR;
-  specCv.style.width=SW+'px'; specCv.style.height=SH+'px';
+function buildStemRows(){
+  const area = document.getElementById('stems-area');
+  area.innerHTML = '';
+  stemCanvases = [];
+  stemRows = [];
 
-  const gw=document.getElementById('sgram-wrap');
-  GW=gw.offsetWidth-52; GH=gw.offsetHeight;
-  sgramCv.width=GW*DPR; sgramCv.height=GH*DPR;
-  sgramCv.style.width=GW+'px'; sgramCv.style.height=GH+'px';
+  STEMS_CFG.forEach((cfg, idx) => {
+    const name = cfg.name;
+    const data = STEMS[name] || {};
+    const row = document.createElement('div');
+    row.className = 'stem-row';
+    row.id = 'sr-'+idx;
 
-  WW=wfCv.offsetWidth; WH=wfCv.offsetHeight;
-  wfCv.width=WW*DPR; wfCv.height=WH*DPR;
-  wfCv.style.width=WW+'px'; wfCv.style.height=WH+'px';
+    // 标签
+    const label = document.createElement('div');
+    label.className = 'stem-label';
+    label.innerHTML = `
+      <span class="stem-icon">${cfg.icon}</span>
+      <div>
+        <div class="stem-name" style="color:${cfg.color}">${cfg.label.split('/')[0].split(' ').slice(0,2).join(' ')}</div>
+        <div class="stem-hz">${cfg.freq}</div>
+      </div>
+    `;
 
-  drawStaticWF();
-  // 清空声谱图（尺寸变了）
-  const g=sgramCv.getContext('2d');
-  g.fillStyle='#020208'; g.fillRect(0,0,GW*DPR,GH*DPR);
+    // 轨道画布
+    const track = document.createElement('div');
+    track.className = 'stem-track';
+    const cv = document.createElement('canvas');
+    track.appendChild(cv);
+
+    row.appendChild(label);
+    row.appendChild(track);
+    area.appendChild(row);
+
+    stemCanvases.push({ cv, track, cfg, name, data, idx });
+    stemRows.push(row);
+  });
+
+  // 初始尺寸
+  resizeStems();
 }
-window.addEventListener('resize', resize);
 
-// ══════════════════════════════════════════════════════════════
-// 静态波形背景（Kick/Snare 竖线 + 大事件菱形）
-// ══════════════════════════════════════════════════════════════
-function drawStaticWF() {
-  if (!WW) return;
-  const ctx=wfCv.getContext('2d'), W=WW*DPR, H=WH*DPR;
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#020208'; ctx.fillRect(0,0,W,H);
-
-  // 底部基准线
-  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(0,H/2); ctx.lineTo(W,H/2); ctx.stroke();
-
-  // Kick（红竖线）
-  ctx.strokeStyle='rgba(255,59,48,.4)'; ctx.lineWidth=1;
-  KICK.forEach(t=>{
-    const x=(t/TOTAL)*W;
-    ctx.beginPath(); ctx.moveTo(x,H*.15); ctx.lineTo(x,H*.85); ctx.stroke();
-  });
-  // Snare（橙竖线）
-  ctx.strokeStyle='rgba(255,159,10,.3)'; ctx.lineWidth=.8;
-  SNARE.forEach(t=>{
-    const x=(t/TOTAL)*W;
-    ctx.beginPath(); ctx.moveTo(x,H*.25); ctx.lineTo(x,H*.75); ctx.stroke();
-  });
-  // HiHat（黄色细线）
-  ctx.strokeStyle='rgba(255,214,10,.18)'; ctx.lineWidth=.5;
-  HIHAT.forEach(t=>{
-    const x=(t/TOTAL)*W;
-    ctx.beginPath(); ctx.moveTo(x,H*.38); ctx.lineTo(x,H*.62); ctx.stroke();
-  });
-  // 8拍起始（粉色虚线）
-  ctx.strokeStyle='rgba(255,110,199,.2)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
-  BAR_STARTS.forEach(t=>{
-    const x=(t/TOTAL)*W;
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
-  });
-  ctx.setLineDash([]);
-  // 大事件菱形
-  EVENTS.forEach(e=>{
-    if (!e.is_cue) return;
-    const x=(e.time/TOTAL)*W, col=e.color||'#fff';
-    ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=5;
-    ctx.beginPath();
-    ctx.moveTo(x,3); ctx.lineTo(x+3.5,H/2); ctx.lineTo(x,H-3); ctx.lineTo(x-3.5,H/2);
-    ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+function resizeStems(){
+  stemCanvases.forEach(s => {
+    const w = s.track.offsetWidth;
+    const h = s.track.offsetHeight;
+    s.cv.width = w * DPR;
+    s.cv.height = h * DPR;
+    s.cv.style.width = w + 'px';
+    s.cv.style.height = h + 'px';
+    s.w = w; s.h = h;
   });
 }
 
-// ══════════════════════════════════════════════════════════════
-// 声谱图（瀑布图）—— 每帧向左滚动一列像素
-// ══════════════════════════════════════════════════════════════
-// 颜色映射：0=黑，低能=深蓝，中=青，高=黄，极高=白
-function spectroColor(val) {
-  // val: 0~255
-  if (val < 30)  return [0, 0, Math.round(val*4), 255];
-  if (val < 80)  return [0, Math.round((val-30)*4), 200, 255];
-  if (val < 140) return [0, 200, Math.round(255-(val-80)*2), 255];
-  if (val < 200) return [Math.round((val-140)*3.5), 255, 0, 255];
-  return [255, Math.round(255-(val-200)*5), 0, 255];
-}
-
-// 声谱图频率→Y 映射（对数刻度，低频占更多空间）
-function freqToY(hz, H, sampleRate, fftBins) {
-  // 对数映射 20Hz~20kHz → H~0 (Y=0是顶部=高频)
-  const logMin = Math.log10(20), logMax = Math.log10(20000);
-  const t = 1 - (Math.log10(Math.max(hz, 20)) - logMin) / (logMax - logMin);
-  return Math.round(t * H);
-}
-
-let sgramImageData = null;
-
-function drawSpectrogram() {
-  if (!_ready || !GW || !GH) return;
-  const ctx = sgramCv.getContext('2d');
-  const W = GW*DPR, H = GH*DPR;
-  const SR = actx.sampleRate;
-  const bins = analyser.frequencyBinCount;
-  const binHz = SR / FFT_SIZE;
-
-  // 滚动：把现有图像向左移一列
-  if (!sgramImageData || sgramImageData.width !== W || sgramImageData.height !== H) {
-    sgramImageData = ctx.createImageData(W, H);
-    // 初始化为黑色
-    for (let i=0; i<sgramImageData.data.length; i+=4) {
-      sgramImageData.data[i+3]=255;
-    }
-  }
-  // 把现有画面向左移动 2px
-  const STEP = 2;
-  const imgData = ctx.getImageData(STEP, 0, W-STEP, H);
-  ctx.putImageData(imgData, 0, 0);
-
-  // 在最右侧一列画新频谱
-  const colData = ctx.createImageData(STEP, H);
-  for (let py = 0; py < H; py++) {
-    // py → Hz（对数反映射）
-    const t = py / H;  // 0=顶部高频, 1=底部低频
-    const logMin=Math.log10(20), logMax=Math.log10(20000);
-    const hz = Math.pow(10, logMin + t*(logMax-logMin));
-    const binIdx = Math.min(Math.round(hz / binHz), bins-1);
-
-    // 取附近几个 bin 的最大值（抗混叠）
-    let val=0;
-    for (let d=-1; d<=1; d++) {
-      const b=Math.max(0,Math.min(bins-1,binIdx+d));
-      val=Math.max(val, freqData[b]);
-    }
-
-    const [r,g,b,a] = spectroColor(val);
-    for (let s=0; s<STEP; s++) {
-      const idx = (py*STEP+s)*4;
-      colData.data[idx]=r; colData.data[idx+1]=g;
-      colData.data[idx+2]=b; colData.data[idx+3]=a;
-    }
-  }
-  ctx.putImageData(colData, W-STEP, 0);
-
-  // 叠加事件标记（当前时间点）
+// ── 绘制每条轨道 ──
+function drawStems(){
   const ct = AUD.currentTime;
-  EVENTS.forEach(e=>{
-    if (Math.abs(e.time - ct) < 0.3) {
-      ctx.strokeStyle = (e.color||'#fff')+'cc';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(W-STEP, 0); ctx.lineTo(W-STEP, H); ctx.stroke();
+  const dur = AUD.duration || TOTAL;
+  if (!dur) return;
+
+  stemCanvases.forEach(s => {
+    const ctx = s.cv.getContext('2d');
+    const W = s.w * DPR;
+    const H = s.h * DPR;
+    if (!W || !H) return;
+
+    ctx.clearRect(0,0,W,H);
+
+    const col = s.cfg.color;
+    const data = s.data;
+    const hits = data.hits || [];
+    const curve = data.energy_curve || [];
+
+    // ── 背景能量曲线（半透明填充） ──
+    if (curve.length > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      for (let i = 0; i < curve.length; i++) {
+        const x = (i / curve.length) * W;
+        const v = curve[i];
+        const y = H - v * H * 0.85;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+
+      // 渐变填充
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, col + '30');
+      grad.addColorStop(1, col + '08');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // 顶部边线
+      ctx.beginPath();
+      for (let i = 0; i < curve.length; i++) {
+        const x = (i / curve.length) * W;
+        const v = curve[i];
+        const y = H - v * H * 0.85;
+        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      ctx.strokeStyle = col + '55';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── 事件竖线（hits） ──
+    hits.forEach(t => {
+      const x = (t / dur) * W;
+      const isCurrent = Math.abs(t - ct) < 0.15;
+
+      ctx.strokeStyle = isCurrent ? col : col + '55';
+      ctx.lineWidth = isCurrent ? 2.5 : 1;
+      if (isCurrent) {
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 8;
+      }
+      ctx.beginPath();
+      ctx.moveTo(x, H * 0.1);
+      ctx.lineTo(x, H * 0.9);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 当前事件圆点
+      if (isCurrent) {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(x, H/2, 3.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+    });
+
+    // ── 播放头 ──
+    const phX = (ct / dur) * W;
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(phX, 0);
+    ctx.lineTo(phX, H);
+    ctx.stroke();
+
+    // ── 实时能量条（右侧） ──
+    if (_ready && analyser) {
+      const SR = actx.sampleRate;
+      const binHz = SR / FFT;
+      const bins = analyser.frequencyBinCount;
+      const loBin = Math.max(0, Math.round(parseInt(s.cfg.freq) / binHz));
+      const hiBin = Math.min(bins-1, Math.round(parseInt(s.cfg.freq.split('-')[1]) / binHz));
+
+      let sum = 0, cnt = 0;
+      for (let b = loBin; b <= hiBin; b++) {
+        sum += freqData[b]; cnt++;
+      }
+      const energy = cnt > 0 ? sum / (cnt * 255) : 0;
+
+      // 右侧实时能量条
+      const barW = 6 * DPR;
+      const barH = energy * H * 0.9;
+      const bx = W - barW - 2;
+      const by = H - barH;
+
+      ctx.fillStyle = col + '99';
+      ctx.fillRect(bx, by, barW, barH);
+
+      // 闪光效果
+      if (energy > 0.5) {
+        s.flashTimer = 6;
+      }
+    }
+
+    // 行闪光
+    if (s.flashTimer && s.flashTimer > 0) {
+      stemRows[s.idx].classList.add('flash');
+      s.flashTimer--;
+    } else {
+      stemRows[s.idx].classList.remove('flash');
+    }
+  });
+}
+
+// ── 活跃轨道指示器 ──
+function buildActiveStems(){
+  const grid = document.getElementById('as-grid');
+  grid.innerHTML = '';
+  STEMS_CFG.forEach((cfg, i) => {
+    const el = document.createElement('div');
+    el.className = 'as-item';
+    el.id = 'as-'+i;
+    el.innerHTML = `${cfg.icon} ${cfg.label.split('/')[0].split(' ').slice(0,2).join(' ')}`;
+    el.style.borderColor = cfg.color + '33';
+    el.dataset.color = cfg.color;
+    grid.appendChild(el);
+  });
+}
+
+function updateActiveStems(){
+  if (!_ready || !analyser) return;
+  const SR = actx.sampleRate;
+  const binHz = SR / FFT;
+  const bins = analyser.frequencyBinCount;
+
+  STEMS_CFG.forEach((cfg, i) => {
+    const loBin = Math.max(0, Math.round(parseInt(cfg.freq) / binHz));
+    const hiBin = Math.min(bins-1, Math.round(parseInt(cfg.freq.split('-')[1]) / binHz));
+    let sum=0,cnt=0;
+    for(let b=loBin;b<=hiBin;b++){sum+=freqData[b];cnt++;}
+    const e = cnt>0?sum/(cnt*255):0;
+
+    const el = document.getElementById('as-'+i);
+    if (!el) return;
+    if (e > 0.3) {
+      el.classList.add('on');
+      el.style.background = cfg.color + '25';
+      el.style.borderColor = cfg.color + '88';
+      el.style.color = cfg.color;
+    } else {
+      el.classList.remove('on');
+      el.style.background = 'rgba(255,255,255,.03)';
+      el.style.borderColor = cfg.color + '15';
+      el.style.color = 'rgba(255,255,255,.2)';
     }
   });
 }
 
 // ══════════════════════════════════════════════════════════════
-// 实时频谱柱
+// 实时频谱（紧凑版）
 // ══════════════════════════════════════════════════════════════
-// 频率区段定义（10段）
-const ZONES = [
-  { lo:20,  hi:60,   name:'Sub',     top:'#ff2d55', bot:'#880011' },
-  { lo:60,  hi:200,  name:'Kick',    top:'#ff3b30', bot:'#cc1100' },
-  { lo:200, hi:500,  name:'Low',     top:'#ff8800', bot:'#884400' },
-  { lo:500, hi:1000, name:'Snare',   top:'#ff9f0a', bot:'#886600' },
-  { lo:1000,hi:2000, name:'Mid',     top:'#ffd60a', bot:'#887700' },
-  { lo:2000,hi:4000, name:'Vocal',   top:'#34c759', bot:'#1a6e2e' },
-  { lo:4000,hi:8000, name:'Hi',      top:'#30d158', bot:'#0e6e2e' },
-  { lo:8000,hi:14000,name:'HiHat',   top:'#00e5ff', bot:'#007799' },
-  { lo:14000,hi:18000,name:'Scratch',top:'#bf5af2', bot:'#6633aa' },
-  { lo:18000,hi:20000,name:'Air',    top:'#a8d8ea', bot:'#446677' },
-];
+const specCv=document.getElementById('spec-cv');
+let SW,SH;
 
-let kFlash=0, sFlash=0, hFlash=0, scrFlash=0;
-
-function drawSpectrum() {
-  if (!SW || !SH) return;
-  const ctx=specCv.getContext('2d'), W=SW*DPR, H=SH*DPR;
+function drawSpec(){
+  if(!SW||!SH)return;
+  const ctx=specCv.getContext('2d'),W=SW*DPR,H=SH*DPR;
   ctx.clearRect(0,0,W,H);
-  ctx.fillStyle='#03030a'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#03030a';ctx.fillRect(0,0,W,H);
 
-  if (!_ready || !analyser) {
-    // 占位动画
+  if(!_ready||!analyser){
     ctx.fillStyle='rgba(255,255,255,.02)';
-    for (let i=0;i<80;i++) {
-      const h=(Math.sin(i*.4+Date.now()*.0008)*.3+.35)*H*.3;
-      ctx.fillRect(i*(W/80)+1, H-h, W/80-2, h);
+    for(let i=0;i<60;i++){
+      const h=(Math.sin(i*.4+Date.now()*.0008)*.3+.35)*H*.25;
+      ctx.fillRect(i*(W/60)+1,H-h,W/60-2,h);
     }
     return;
   }
 
   analyser.getByteFrequencyData(freqData);
   analyser.getByteTimeDomainData(timeData);
+  const SR=actx.sampleRate,bins=analyser.frequencyBinCount,binHz=SR/FFT;
 
-  const SR=actx.sampleRate, bins=analyser.frequencyBinCount;
-  const binHz=SR/FFT_SIZE;
+  // 频谱柱（100根，紧凑）
+  const N=100,gap=1,barW=W/N-gap;
+  for(let i=0;i<N;i++){
+    const hz=20*Math.pow(1000,i/N);
+    const bi=Math.min(Math.round(hz/binHz),bins-1);
+    let mx=0;
+    for(let d=-2;d<=2;d++){const b=Math.max(0,Math.min(bins-1,bi+d));mx=Math.max(mx,freqData[b]);}
+    const v=mx/255,barH=v*H*.88;
+    if(barH<.5)continue;
+    const x=i*(W/N);
 
-  // 各区段平均能量
-  function avg(loHz, hiHz) {
-    const l=Math.max(0,Math.round(loHz/binHz));
-    const h=Math.min(bins-1,Math.round(hiHz/binHz));
-    if (h<=l) return 0;
-    let s=0; for(let i=l;i<=h;i++) s+=freqData[i];
-    return s/((h-l+1)*255);
-  }
-
-  const eKick=avg(60,200), eSnare=avg(500,1000), eHH=avg(8000,14000), eScratch=avg(14000,20000);
-
-  // 闪光触发
-  if (eKick>0.52)    kFlash=15;
-  if (eSnare>0.38)   sFlash=10;
-  if (eHH>0.28)      hFlash=7;
-  if (eScratch>0.22) scrFlash=8;
-  if (kFlash>0) kFlash--;
-  if (sFlash>0) sFlash--;
-  if (hFlash>0) hFlash--;
-  if (scrFlash>0) scrFlash--;
-
-  // 背景闪光
-  if (kFlash>0) {
-    ctx.fillStyle=`rgba(255,59,48,${kFlash/15*0.1})`; ctx.fillRect(0,0,W,H);
-  }
-  if (sFlash>0) {
-    ctx.fillStyle=`rgba(255,159,10,${sFlash/10*0.07})`; ctx.fillRect(0,0,W,H);
-  }
-  if (scrFlash>0) {
-    ctx.fillStyle=`rgba(191,90,242,${scrFlash/8*0.07})`; ctx.fillRect(0,0,W,H);
-  }
-
-  // 网格线（水平）
-  ctx.strokeStyle='rgba(255,255,255,.04)'; ctx.lineWidth=.5;
-  [0.25,0.5,0.75].forEach(y=>{
-    ctx.beginPath(); ctx.moveTo(0,H*y); ctx.lineTo(W,H*y); ctx.stroke();
-  });
-
-  // ── 频谱柱（对数刻度，160根）──
-  const BAR_N=160;
-  const gap=1.5;
-  const barW = W/BAR_N - gap;
-
-  for (let i=0; i<BAR_N; i++) {
-    const ratio=i/BAR_N;
-    // 对数映射 20Hz ~ 20kHz
-    const hz = 20*Math.pow(20000/20, ratio);
-    const binIdx=Math.min(Math.round(hz/binHz), bins-1);
-
-    let maxV=0;
-    for (let d=-2;d<=2;d++) {
-      const b=Math.max(0,Math.min(bins-1,binIdx+d));
-      maxV=Math.max(maxV, freqData[b]);
+    // 颜色
+    let c='#888';
+    for(const cfg of STEMS_CFG){
+      const lo=parseInt(cfg.freq),hi=parseInt(cfg.freq.split('-')[1]);
+      if(hz>=lo&&hz<hi){c=cfg.color;break;}
     }
-    const v=maxV/255;
-    const barH=v*H*0.9;
-    if (barH<0.5) continue;
 
-    const x=i*(W/BAR_N);
-
-    // 颜色按频率区段
-    let topC='#ffffff', botC='#444444';
-    if (hz<60)       { topC=ZONES[0].top; botC=ZONES[0].bot; }
-    else if (hz<200) { topC=ZONES[1].top; botC=ZONES[1].bot; }
-    else if (hz<500) { topC=ZONES[2].top; botC=ZONES[2].bot; }
-    else if (hz<1000){ topC=ZONES[3].top; botC=ZONES[3].bot; }
-    else if (hz<2000){ topC=ZONES[4].top; botC=ZONES[4].bot; }
-    else if (hz<4000){ topC=ZONES[5].top; botC=ZONES[5].bot; }
-    else if (hz<8000){ topC=ZONES[6].top; botC=ZONES[6].bot; }
-    else if (hz<14000){topC=ZONES[7].top; botC=ZONES[7].bot; }
-    else if (hz<18000){topC=ZONES[8].top; botC=ZONES[8].bot; }
-    else             { topC=ZONES[9].top; botC=ZONES[9].bot; }
-
-    // 发光
-    if (v>0.55) { ctx.shadowColor=topC; ctx.shadowBlur=v*16; }
-
+    if(v>.5){ctx.shadowColor=c;ctx.shadowBlur=v*12;}
     const g=ctx.createLinearGradient(0,H-barH,0,H);
-    g.addColorStop(0,topC); g.addColorStop(1,botC+'88');
+    g.addColorStop(0,c);g.addColorStop(1,c+'44');
     ctx.fillStyle=g;
     ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x,H-barH,barW,barH,2);
+    if(ctx.roundRect)ctx.roundRect(x,H-barH,barW,barH,1.5);
     else ctx.rect(x,H-barH,barW,barH);
-    ctx.fill();
-    ctx.shadowBlur=0;
-
-    // 顶部高亮条
-    ctx.fillStyle=topC+'bb';
-    ctx.fillRect(x, H-barH, barW, 1.5);
+    ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle=c+'aa';ctx.fillRect(x,H-barH,barW,1.5);
   }
 
-  // ── 时域波形（白色细线叠加在频谱上方） ──
-  ctx.save(); ctx.globalAlpha=0.5;
-  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.5;
-  ctx.shadowColor='rgba(255,255,255,.4)'; ctx.shadowBlur=4;
+  // 波形叠加
+  ctx.save();ctx.globalAlpha=.4;
+  ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=1;
   ctx.beginPath();
   const sl=W/timeData.length;
-  for (let i=0;i<timeData.length;i++) {
-    const v=(timeData[i]/128-1)*0.3;
-    const x=i*sl, y=H/2+v*H*0.38;
+  for(let i=0;i<timeData.length;i++){
+    const v=(timeData[i]/128-1)*.25;
+    const x=i*sl,y=H/2+v*H*.35;
     i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   }
-  ctx.stroke(); ctx.shadowBlur=0; ctx.restore();
-
-  // ── VU 电平更新 ──
-  const bands=[
-    avg(20,60), avg(60,200), avg(200,500), avg(500,1000), avg(1000,2000),
-    avg(2000,4000), avg(4000,8000), avg(8000,14000), avg(14000,20000)
-  ];
-  bands.forEach((v,i) => updateVU(i, v));
-}
-
-// 峰值保持
-const pkVals = new Array(9).fill(0);
-const PKD = 0.012;
-
-function updateVU(i, val) {
-  const pct = Math.min(val*120, 100);  // ×1.2 放大让电平表更活跃
-  const bar=document.getElementById('vb'+i);
-  const pk=document.getElementById('vp'+i);
-  const vt=document.getElementById('vv'+i);
-  if (!bar||!pk||!vt) return;
-  bar.style.width=pct+'%';
-  if (pct>pkVals[i]*100) { pkVals[i]=pct/100; }
-  else { pkVals[i]=Math.max(0,pkVals[i]-PKD); }
-  pk.style.left=(pkVals[i]*100)+'%';
-  vt.textContent=Math.round(pct);
+  ctx.stroke();ctx.restore();
 }
 
 // ══════════════════════════════════════════════════════════════
-// 8拍计数
+// 静态波形
 // ══════════════════════════════════════════════════════════════
-let curBeat=-1, curBar=-1;
+const wfCv=document.getElementById('wf-cv');
+let WW,WH;
 
-function updateBeat() {
-  const ct=AUD.currentTime;
-  if (!BEATS.length||ct<MSTART) {
-    if (curBeat>=0) { document.getElementById('bx'+curBeat)?.classList.remove('on','kick','snare','hihat','bar1'); curBeat=-1; }
-    document.getElementById('bnum').textContent='—';
-    return;
-  }
-  let lo=0,hi=BEATS.length-1;
-  while(lo<=hi){const m=(lo+hi)>>1; BEATS[m]<=ct?lo=m+1:hi=m-1;}
-  const bi=hi; if(bi<0)return;
-  const nb=bi%8, nbar=Math.floor(bi/8);
-  if (nb!==curBeat) {
-    if(curBeat>=0) document.getElementById('bx'+curBeat)?.classList.remove('on','kick','snare','hihat','bar1');
-    curBeat=nb;
-    const el=document.getElementById('bx'+curBeat);
-    if (!el) return;
-    el.classList.add('on');
-    const bt=BEATS[bi];
-    const isK=KICK.some(t=>Math.abs(t-bt)<0.1);
-    const isS=SNARE.some(t=>Math.abs(t-bt)<0.1);
-    const isH=HIHAT.some(t=>Math.abs(t-bt)<0.1);
-    if(nb===0)el.classList.add('bar1');
-    else if(isK)el.classList.add('kick');
-    else if(isS)el.classList.add('snare');
-    else if(isH)el.classList.add('hihat');
-  }
-  if (nbar!==curBar) {
-    curBar=nbar;
-    document.getElementById('bnum').textContent=curBar+1;
-  }
+function drawStaticWF(){
+  if(!WW)return;
+  const ctx=wfCv.getContext('2d'),W=WW*DPR,H=WH*DPR;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#020208';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+
+  // 每轨的 hits 用不同颜色
+  STEMS_CFG.forEach(cfg=>{
+    const hits=(STEMS[cfg.name]||{}).hits||[];
+    ctx.strokeStyle=cfg.color+'44';ctx.lineWidth=.8;
+    hits.forEach(t=>{
+      const x=(t/TOTAL)*W;
+      ctx.beginPath();ctx.moveTo(x,H*.15);ctx.lineTo(x,H*.85);ctx.stroke();
+    });
+  });
+
+  // 8拍虚线
+  ctx.strokeStyle='rgba(255,110,199,.18)';ctx.lineWidth=1;ctx.setLineDash([2,4]);
+  BAR_STARTS.forEach(t=>{const x=(t/TOTAL)*W;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();});
+  ctx.setLineDash([]);
+
+  // 事件菱形
+  EVENTS.forEach(e=>{
+    if(!e.is_cue)return;
+    const x=(e.time/TOTAL)*W,c=e.color||'#fff';
+    ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=4;
+    ctx.beginPath();ctx.moveTo(x,2);ctx.lineTo(x+3,H/2);ctx.lineTo(x,H-2);ctx.lineTo(x-3,H/2);
+    ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
-// 教学提示 Banner
+// 事件日志
 // ══════════════════════════════════════════════════════════════
-const BSTYLE={
-  bass: ['rgba(10,132,255,.2)','rgba(10,132,255,.6)','#4fc3f7'],
-  snare:['rgba(255,159,10,.2)','rgba(255,159,10,.6)','#ff9f0a'],
-  vocal:['rgba(48,209,88,.2)','rgba(48,209,88,.6)','#30d158'],
-  bar1: ['rgba(255,110,199,.2)','rgba(255,110,199,.6)','#ff6ec7'],
-  sfx:  ['rgba(191,90,242,.2)','rgba(191,90,242,.6)','#bf5af2'],
-  hihat:['rgba(255,214,10,.15)','rgba(255,214,10,.5)','#ffd60a'],
-  vinyl:['rgba(255,255,255,.06)','rgba(255,255,255,.25)','#aaa'],
-};
+function buildLog(){
+  const l=document.getElementById('evlist');l.innerHTML='';
+  EVENTS.forEach((e,i)=>{
+    const el=document.createElement('div');el.className='ev-item';el.id='ei'+i;
+    el.innerHTML=`<span class="ev-t">${e.time.toFixed(1)}s</span><span class="ev-i">${e.icon||'🎵'}</span><span class="ev-tx">${e.desc||e.label||''}</span><div class="ev-dot" style="background:${e.color||'#888'}"></div>`;
+    l.appendChild(el);e.el=el;
+  });
+}
+
 let lastEv=-1;
-
-function updateCue() {
+function updateCue(){
   const ct=AUD.currentTime;
-  let best=null, bd=9999;
-  EVENTS.forEach(e=>{ const d=ct-e.time; if(d>=0&&d<4&&d<bd){bd=d;best=e;} });
+  let best=null,bd=9999;
+  EVENTS.forEach(e=>{const d=ct-e.time;if(d>=0&&d<4&&d<bd){bd=d;best=e;}});
   const cue=document.getElementById('cue');
-  if (best) {
-    const s=BSTYLE[best.type]||['rgba(0,0,0,.7)','rgba(255,255,255,.15)','rgba(255,255,255,.5)'];
-    cue.style.background=s[0]; cue.style.borderColor=s[1]; cue.style.color=s[2];
-    cue.classList.add('active');
+  if(best){
+    cue.style.background=best.color+'30';cue.style.borderColor=best.color+'88';cue.style.color=best.color;
     document.getElementById('cue-icon').textContent=best.icon||'🎵';
     document.getElementById('cue-txt').textContent=best.desc||best.label||'';
-    if (best.idx!==lastEv) {
+    if(best.idx!==lastEv){
       lastEv=best.idx;
       document.querySelectorAll('.ev-item').forEach(el=>{
         el.classList.remove('active');
-        if(parseFloat(el.querySelector('.ev-t').textContent)<ct) el.classList.add('passed');
+        if(parseFloat(el.querySelector('.ev-t').textContent)<ct)el.classList.add('passed');
       });
       best.el?.classList.add('active');
       best.el?.scrollIntoView({behavior:'smooth',block:'nearest'});
     }
-  } else if (!AUD.paused) {
-    cue.style.background='rgba(0,0,0,.6)';
-    cue.style.borderColor='rgba(255,255,255,.08)';
+  }else if(!AUD.paused){
+    cue.style.background='rgba(0,0,0,.6)';cue.style.borderColor='rgba(255,255,255,.08)';
     cue.style.color='rgba(255,255,255,.3)';
     document.getElementById('cue-icon').textContent='🎯';
-    document.getElementById('cue-txt').textContent=ct<MSTART?'等待音乐进入...':'感受节拍 · 准备起动';
+    document.getElementById('cue-txt').textContent=ct<MSTART?'等待音乐...':'感受节拍';
   }
 }
 
 // ══════════════════════════════════════════════════════════════
-// 播放头 + 时间更新
+// 8拍
 // ══════════════════════════════════════════════════════════════
-function updateHead() {
-  const ct=AUD.currentTime, dur=AUD.duration||TOTAL;
-  const pct=dur>0?ct/dur:0;
-  document.getElementById('ph').style.left=(pct*100)+'%';
+let curBeat=-1,curBar=-1;
+function updateBeat(){
+  const ct=AUD.currentTime;
+  if(!BEATS.length||ct<MSTART){
+    if(curBeat>=0){document.getElementById('bx'+curBeat)?.classList.remove('on','kick','snare','hihat','bar1');curBeat=-1;}
+    document.getElementById('bnum').textContent='—';return;
+  }
+  let lo=0,hi=BEATS.length-1;
+  while(lo<=hi){const m=(lo+hi)>>1;BEATS[m]<=ct?lo=m+1:hi=m-1;}
+  const bi=hi;if(bi<0)return;
+  const nb=bi%8,nbar=Math.floor(bi/8);
+  if(nb!==curBeat){
+    if(curBeat>=0)document.getElementById('bx'+curBeat)?.classList.remove('on','kick','snare','hihat','bar1');
+    curBeat=nb;
+    const el=document.getElementById('bx'+curBeat);if(!el)return;
+    el.classList.add('on');
+    const bt=BEATS[bi];
+    if(nb===0)el.classList.add('bar1');
+    else if(KICK.some(t=>Math.abs(t-bt)<.1))el.classList.add('kick');
+    else if(SNARE.some(t=>Math.abs(t-bt)<.1))el.classList.add('snare');
+    else if(HIHAT.some(t=>Math.abs(t-bt)<.1))el.classList.add('hihat');
+  }
+  if(nbar!==curBar){curBar=nbar;document.getElementById('bnum').textContent=curBar+1;}
+}
+
+// ══════════════════════════════════════════════════════════════
+// 播放头
+// ══════════════════════════════════════════════════════════════
+function updateHead(){
+  const ct=AUD.currentTime,dur=AUD.duration||TOTAL;
+  document.getElementById('ph').style.left=(dur>0?ct/dur*100:0)+'%';
   const f=fmt(ct);
   document.getElementById('tc').textContent=f;
   document.getElementById('ctxt').textContent=f;
@@ -882,9 +722,10 @@ function updateHead() {
 // ══════════════════════════════════════════════════════════════
 // 主循环
 // ══════════════════════════════════════════════════════════════
-function loop() {
-  drawSpectrum();
-  drawSpectrogram();
+function loop(){
+  drawSpec();
+  drawStems();
+  updateActiveStems();
   updateHead();
   updateBeat();
   updateCue();
@@ -894,41 +735,34 @@ function loop() {
 // ══════════════════════════════════════════════════════════════
 // 控制
 // ══════════════════════════════════════════════════════════════
-let _playing=false;
-function tp(){_playing?pause_():play_()}
-function play_(){
-  initACtx();
-  if(actx?.state==='suspended')actx.resume();
-  AUD.play().catch(e=>console.error(e));
-  _playing=true; document.getElementById('pb').textContent='⏸';
-}
-function pause_(){
-  AUD.pause(); _playing=false; document.getElementById('pb').textContent='▶';
-}
-AUD.addEventListener('ended',()=>{_playing=false;document.getElementById('pb').textContent='▶';});
+let _p=false;
+function tp(){_p?pa():pl()}
+function pl(){initA();if(actx?.state==='suspended')actx.resume();AUD.play().catch(e=>console.error(e));_p=true;document.getElementById('pb').textContent='⏸';}
+function pa(){AUD.pause();_p=false;document.getElementById('pb').textContent='▶';}
+AUD.addEventListener('ended',()=>{_p=false;document.getElementById('pb').textContent='▶';});
+function skipB(n){const bd=BEATS.length>1?(BEATS[1]-BEATS[0]):(60/BPM);AUD.currentTime=Math.max(0,Math.min(AUD.duration||TOTAL,AUD.currentTime+n*bd));}
+function seekClick(e,el){const r=el.getBoundingClientRect();AUD.currentTime=((e.clientX-r.left)/r.width)*(AUD.duration||TOTAL);}
+function ss(v,btn){AUD.playbackRate=v;document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
+AUD.addEventListener('loadedmetadata',()=>{TOTAL=AUD.duration;document.getElementById('tt').textContent=fmt(AUD.duration);});
 
-function skipB(n){
-  const bd=BEATS.length>1?(BEATS[1]-BEATS[0]):(60/BPM);
-  AUD.currentTime=Math.max(0,Math.min(AUD.duration||TOTAL,AUD.currentTime+n*bd));
-}
-function seekClick(e,el){
-  const r=el.getBoundingClientRect();
-  AUD.currentTime=((e.clientX-r.left)/r.width)*(AUD.duration||TOTAL);
-}
-function ss(v,btn){
-  AUD.playbackRate=v;
-  document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-}
-function fmt(s){
-  if(!isFinite(s))return'0:00';
-  return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');
-}
+// ══════════════════════════════════════════════════════════════
+// 尺寸
+// ══════════════════════════════════════════════════════════════
+function resize(){
+  const sw=document.getElementById('spec-wrap');
+  SW=sw.offsetWidth;SH=sw.offsetHeight;
+  specCv.width=SW*DPR;specCv.height=SH*DPR;
+  specCv.style.width=SW+'px';specCv.style.height=SH+'px';
 
-AUD.addEventListener('loadedmetadata',()=>{
-  TOTAL=AUD.duration;
-  document.getElementById('tt').textContent=fmt(AUD.duration);
-});
+  WW=wfCv.offsetWidth;WH=wfCv.offsetHeight;
+  wfCv.width=WW*DPR;wfCv.height=WH*DPR;
+  wfCv.style.width=WW+'px';wfCv.style.height=WH+'px';
+
+  resizeStems();
+  drawStaticWF();
+}
+window.addEventListener('resize',resize);
 
 // ══════════════════════════════════════════════════════════════
 // 初始化
