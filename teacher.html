@@ -99,6 +99,41 @@ body{display:flex;flex-direction:column}
   background:rgba(5,5,14,.95);backdrop-filter:blur(20px);
   border-bottom:1px solid var(--border);flex-shrink:0;z-index:20;height:74px;
 }
+/* HUD 右侧工具区 */
+.hud-right{
+  display:flex;align-items:center;padding:0 12px;gap:8px;
+  border-left:1px solid var(--border);flex-shrink:0
+}
+.hud-switch{
+  display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;
+  cursor:pointer;border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03);transition:.15s;user-select:none
+}
+.hud-switch:hover{border-color:rgba(255,255,255,.15);background:rgba(255,255,255,.06)}
+.hud-switch.on{border-color:rgba(255,214,10,.3);background:rgba(255,214,10,.06)}
+.hud-switch-icon{font-size:.85rem}
+.hud-switch-label{font-size:.48rem;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px}
+.hud-switch.on .hud-switch-label{color:#ffd60a}
+.hud-switch-dot{
+  width:22px;height:12px;border-radius:6px;background:rgba(255,255,255,.12);
+  position:relative;transition:.2s;flex-shrink:0
+}
+.hud-switch-dot::after{
+  content:'';position:absolute;width:8px;height:8px;border-radius:50%;
+  background:rgba(255,255,255,.35);top:2px;left:2px;transition:.2s
+}
+.hud-switch.on .hud-switch-dot{background:rgba(255,214,10,.35)}
+.hud-switch.on .hud-switch-dot::after{background:#ffd60a;left:12px;box-shadow:0 0 4px #ffd60a}
+
+/* stem-hdr 展开/收起按钮 */
+.stem-hdr{cursor:default}
+.stem-hdr-toggle{
+  margin-left:auto;font-size:.55rem;color:rgba(255,255,255,.3);
+  cursor:pointer;padding:1px 5px;border-radius:3px;
+  transition:.1s;user-select:none
+}
+.stem-hdr-toggle:hover{color:#fff;background:rgba(255,255,255,.08)}
+
 .hud-info{width:186px;display:flex;flex-direction:column;justify-content:center;
   padding:0 10px 0 12px;border-right:1px solid var(--border);flex-shrink:0;gap:4px}
 .hud-song-row{display:flex;align-items:center;gap:6px}
@@ -410,6 +445,15 @@ body{display:flex;flex-direction:column}
       <div class="dance-style" id="danceStyle"></div>
       <div class="dance-move-name" id="danceMoveName"></div>
       <div class="dance-move-tip" id="danceMoveTip"></div>
+    </div>
+  </div>
+
+  <!-- 右上角工具开关 -->
+  <div class="hud-right">
+    <div class="hud-switch" id="sfxSwitch" onclick="toggleSFX()" title="乐器音效（试验性）">
+      <span class="hud-switch-icon">🔔</span>
+      <span class="hud-switch-label">音效</span>
+      <span class="hud-switch-dot" id="sfxDot"></span>
     </div>
   </div>
 </div>
@@ -740,12 +784,27 @@ function showSegmentBanner(icon,text,color){
 }
 
 // ══════════════════════════════════════════════════════════════
-// DAW — 同 stem 子轨合并为一个合并行
+// DAW — 同 stem 子轨合并为一个合并行（可点击展开）
 // ══════════════════════════════════════════════════════════════
 // MERGE_STEMS: drums 子轨（kick/snare/toms/cymbals）必须独立行，才能看清
 // 只有 bass/vocals/other 的子轨可选择合并
 const MERGE_STEMS = new Set(['bass','vocals','other']); // 注意：drums 移出合并集
 let trackRows=[];
+// 记录每个 stem 是否处于展开状态（默认收起）
+const stemExpanded = {};
+
+function toggleStemExpand(stemName, btn){
+  stemExpanded[stemName] = !stemExpanded[stemName];
+  const isExp = stemExpanded[stemName];
+  // 展开时：隐藏合并行、显示独立行
+  const merged = document.getElementById('tr-'+stemName);
+  if(merged) merged.style.display = isExp ? 'none' : 'flex';
+  const expRows = document.querySelectorAll(`.tr[data-stem="${stemName}"]`);
+  expRows.forEach(r => r.style.display = isExp ? 'flex' : 'none');
+  if(btn) btn.textContent = isExp ? '▲ 收起' : '▼ 展开';
+  // 重新 resize 新显示的行
+  setTimeout(()=>resizeTracks(), 20);
+}
 
 function buildDAW(){
   const daw=document.getElementById('daw');
@@ -762,15 +821,26 @@ function buildDAW(){
     const hdr=document.createElement('div');
     hdr.className='stem-hdr';
     hdr.style.borderLeft=`3px solid ${STEM_COLORS[stemName]}`;
-    hdr.innerHTML=`<span class="stem-hdr-icon">${STEM_ICONS[stemName]}</span>
-      <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>`;
-    daw.appendChild(hdr);
 
-    // drums 始终独立行；bass/vocals/other 超过1条时合并
     const doMerge = MERGE_STEMS.has(stemName) && tracks.length > 1;
+    let toggleBtn = null;
+    if(doMerge){
+      // 有展开按钮
+      hdr.innerHTML=`<span class="stem-hdr-icon">${STEM_ICONS[stemName]}</span>
+        <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>
+        <span class="stem-hdr-toggle" id="tog-${stemName}">▼ 展开</span>`;
+    } else {
+      hdr.innerHTML=`<span class="stem-hdr-icon">${STEM_ICONS[stemName]}</span>
+        <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>`;
+    }
+    daw.appendChild(hdr);
+    if(doMerge){
+      toggleBtn = hdr.querySelector('.stem-hdr-toggle');
+      toggleBtn.onclick = (e)=>{ e.stopPropagation(); toggleStemExpand(stemName, toggleBtn); };
+    }
 
     if(doMerge){
-      // ── 合并行 ──
+      // ── 合并行（默认显示） ──
       const mergedH = Math.min(18, Math.max(12, Math.floor(72/tracks.length)));
       const totalH  = mergedH * tracks.length;
       const row=document.createElement('div');
@@ -798,13 +868,37 @@ function buildDAW(){
       row.appendChild(label);row.appendChild(stack);row.appendChild(overlay);
       daw.appendChild(row);
 
+      // 合并行 canvas（用于收起状态绘制）
       tracks.forEach(tc=>{
         const subData=STEMS[tc.name]||{};
         const cv=document.createElement('canvas');
         cv.style.display='block';cv.style.width='100%';cv.style.height=mergedH+'px';cv.style.flexShrink='0';
         stack.appendChild(cv);
-        trackRows.push({cv,wrap:stack,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble,mergedH});
+        trackRows.push({cv,wrap:stack,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble,mergedH,isMerged:true});
       });
+
+      // 展开后的独立行（默认 display:none，展开时显示）
+      tracks.forEach(tc=>{
+        const subData=STEMS[tc.name]||{};
+        const expRow=document.createElement('div');
+        expRow.className='tr';expRow.id='tr-exp-'+tc.name;
+        expRow.dataset.stem=stemName; // 用于 toggleStemExpand 查找
+        expRow.style.display='none'; // 默认隐藏
+        const expLabel=document.createElement('div');
+        expLabel.className='tr-label';
+        expLabel.innerHTML=`<span class="tr-icon">${tc.icon}</span>
+          <div><div class="tr-name" style="color:${tc.color}">${tc.label}</div>
+          <div class="tr-hz">${tc.freq||'AI全频'}</div></div>`;
+        const expCvWrap=document.createElement('div');expCvWrap.className='tr-cv';
+        const expCv=document.createElement('canvas');expCvWrap.appendChild(expCv);
+        const expOverlay=document.createElement('div');expOverlay.className='tr-overlay';
+        const expBubble=document.createElement('div');expBubble.className='tr-bubble';
+        expOverlay.appendChild(expBubble);
+        expRow.appendChild(expLabel);expRow.appendChild(expCvWrap);expRow.appendChild(expOverlay);
+        daw.appendChild(expRow);
+        trackRows.push({cv:expCv,wrap:expCvWrap,row:expRow,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble:expBubble,isExpanded:true});
+      });
+
     } else {
       // ── 独立行（drums 和单条子轨都走这里）──
       tracks.forEach(tc=>{
@@ -836,8 +930,11 @@ function buildDAW(){
 
 function resizeTracks(){
   trackRows.forEach(t=>{
+    // display:none 的展开行不 resize（避免宽高=0 覆盖已有数据）
+    if(t.row.style.display==='none') return;
     const w=t.wrap.offsetWidth;
     const h=t.mergedH||t.wrap.offsetHeight;
+    if(!w||!h) return;
     t.cv.width=w*DPR;t.cv.height=h*DPR;
     t.cv.style.width=w+'px';t.cv.style.height=h+'px';
     t.w=w;t.h=h;
@@ -848,6 +945,8 @@ function resizeTracks(){
 function drawTracks(){
   const ct=getTime(),dur=TOTAL;
   trackRows.forEach(t=>{
+    // 跳过隐藏的行（不绘制）
+    if(t.row.style.display==='none') return;
     const ctx=t.cv.getContext('2d');
     const W=t.w*DPR,H=t.h*DPR;
     if(!W||!H)return;
@@ -1134,8 +1233,16 @@ function sfxSynth(vol=0.2){
 }
 
 // 分发音效
-let _sfxEnabled = true; // 可通过 UI 关闭
+let _sfxEnabled = false; // 默认关闭，右上角开关控制
 let _lastSfxT = {};
+
+function toggleSFX(){
+  _sfxEnabled = !_sfxEnabled;
+  const sw = document.getElementById('sfxSwitch');
+  if(sw) sw.classList.toggle('on', _sfxEnabled);
+  // 首次开启时解锁 AudioContext（需用户手势）
+  if(_sfxEnabled){ try{ getSfxCtx(); }catch(e){} }
+}
 function playSFX(trackName, stemName){
   if(!_sfxEnabled) return;
   const now = performance.now();
