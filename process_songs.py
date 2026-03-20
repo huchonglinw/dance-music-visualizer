@@ -32,8 +32,13 @@ def slugify(name):
     name = re.sub(r'[\s]+', '_', name.strip())
     return name[:40].lower().strip('_')
 
-def run(cmd, **kw):
-    return subprocess.run(cmd, shell=True, **kw)
+_DEVNULL = open(os.devnull, 'wb')
+
+def run(cmd, capture=False, **kw):
+    """capture=True 仅用于需要读取输出的命令（小输出），默认丢弃 stdout/stderr"""
+    if capture:
+        return subprocess.run(cmd, shell=True, capture_output=True, text=True, **kw)
+    return subprocess.run(cmd, shell=True, stdout=_DEVNULL, stderr=_DEVNULL, **kw)
 
 def process_song(entry):
     fname, artist, song, genre, genre_name, genre_short, icon = entry
@@ -61,9 +66,9 @@ def process_song(entry):
         os.makedirs(stems_dir, exist_ok=True)
         print(f"  🔬 Stem 分离中...")
         r = run(f'audio-separator "{mp3_src}" -m htdemucs_6s.yaml --output_dir "{stems_dir}" --output_format wav',
-                capture_output=True, text=True, cwd=BASE)
+                cwd=BASE)
         if r.returncode != 0:
-            print(f"  ❌ 分离失败: {r.stderr[-200:]}")
+            print(f"  ❌ 分离失败 (code={r.returncode})")
             return slug, False
         print(f"  ✅ Stem 分离完成")
     else:
@@ -73,14 +78,14 @@ def process_song(entry):
     os.makedirs(stems6, exist_ok=True)
     for stem_label in ["Bass","Drums","Guitar","Other","Piano","Vocals"]:
         dst = os.path.join(stems6, stem_label.lower()+".mp3")
-        if os.path.exists(dst): continue
+        if os.path.exists(dst) and os.path.getsize(dst) > 10000: continue
         wavs = glob.glob(os.path.join(stems_dir, f"*({stem_label})*.wav"))
         if not wavs:
             wavs = glob.glob(os.path.join(stems_dir, f"*{stem_label}*.wav"))
         if not wavs:
             print(f"  ⚠️  找不到 {stem_label} WAV")
             continue
-        r = run(f'ffmpeg -y -i "{wavs[0]}" -b:a 192k "{dst}"', capture_output=True)
+        r = run(f'ffmpeg -y -i "{wavs[0]}" -b:a 192k "{dst}"')
         print(f"  {'✅' if r.returncode==0 else '❌'} {stem_label.lower()}.mp3")
 
     # 4. 分析
@@ -88,11 +93,11 @@ def process_song(entry):
     r = run(f'python3 analyze_msst.py "{stems_dir}" "{mp3_src}" '
             f'--genre {genre} --genre-name "{genre_name}" --genre-short "{genre_short}" '
             f'--out "{beats_out}"',
-            capture_output=True, text=True, cwd=BASE)
+            capture=True, cwd=BASE)
     if r.returncode != 0 or not os.path.exists(beats_out):
-        print(f"  ❌ 分析失败: {r.stderr[-300:]}")
+        print(f"  ❌ 分析失败: {r.stderr[-400:]}")
         return slug, False
-    print(r.stdout[-300:] if r.stdout else "  (no stdout)")
+    if r.stdout: print(r.stdout[-200:])
 
     # 5. 修正元数据 + audio_files
     with open(beats_out) as f: d = json.load(f)
@@ -137,11 +142,111 @@ def update_index():
     print(f"\n📋 index.json 更新：{len(songs)} 首歌")
 
 if __name__ == "__main__":
-    ok, fail = [], []
+    import threading, queue
+
+    # ── 分两阶段并行 ──
+    # 阶段1: stem 分离（串行，GPU 单实例）
+    # 阶段2: WAV→MP3 + 分析（最多 3 个线程并行）
+    MAX_WORKERS = 3
+
+    results = {}
+    sep_lock = threading.Lock()  # 保证 stem 分离串行
+
+    def phase1_separate(entry):
+        """仅做 stem 分离，跳过已有"""
+        fname, artist, song, genre, genre_name, genre_short, icon = entry
+        slug = slugify(fname)
+        mp3_src   = os.path.join(BASE, "songs", fname)
+        stems_dir = os.path.join(BASE, "separated", slug+"_stems")
+        audio_out = os.path.join(BASE, "songs_audio", slug+".mp3")
+        beats_out = os.path.join(BASE, "beats", slug+".json")
+        if os.path.exists(beats_out):
+            print(f"⏭  跳过（已有）: {song}")
+            results[slug] = True
+            return
+        if not os.path.exists(audio_out):
+            shutil.copy2(mp3_src, audio_out)
+        with sep_lock:
+            if not os.path.exists(stems_dir) or len(glob.glob(stems_dir+"/*.wav")) < 6:
+                os.makedirs(stems_dir, exist_ok=True)
+                print(f"🔬 [{song}] Stem 分离中...")
+                r = run(f'audio-separator "{mp3_src}" -m htdemucs_6s.yaml --output_dir "{stems_dir}" --output_format wav', cwd=BASE)
+                if r.returncode != 0:
+                    print(f"❌ [{song}] Stem 分离失败")
+                    results[slug] = False
+                    return
+                print(f"✅ [{song}] Stem 分离完成")
+            else:
+                print(f"⏭  [{song}] Stem 已存在")
+
+    def phase2_process(entry):
+        """WAV→MP3 + 分析 + 元数据（可并行）"""
+        fname, artist, song, genre, genre_name, genre_short, icon = entry
+        slug = slugify(fname)
+        if results.get(slug) is not None:
+            return  # 已有结果（成功/失败/跳过）
+        mp3_src   = os.path.join(BASE, "songs", fname)
+        stems_dir = os.path.join(BASE, "separated", slug+"_stems")
+        stems6    = os.path.join(BASE, "songs_audio", slug+"_stems6")
+        beats_out = os.path.join(BASE, "beats", slug+".json")
+        audio_out = os.path.join(BASE, "songs_audio", slug+".mp3")
+
+        if not os.path.exists(stems_dir) or len(glob.glob(stems_dir+"/*.wav")) < 6:
+            results[slug] = False
+            return  # stem 分离未完成
+
+        # WAV → MP3（6个 ffmpeg 顺序跑，但多首歌之间并行）
+        os.makedirs(stems6, exist_ok=True)
+        for stem_label in ["Bass","Drums","Guitar","Other","Piano","Vocals"]:
+            dst = os.path.join(stems6, stem_label.lower()+".mp3")
+            if os.path.exists(dst) and os.path.getsize(dst) > 10000: continue
+            wavs = glob.glob(os.path.join(stems_dir, f"*({stem_label})*.wav"))
+            if not wavs: wavs = glob.glob(os.path.join(stems_dir, f"*{stem_label}*.wav"))
+            if not wavs: continue
+            r = run(f'ffmpeg -y -i "{wavs[0]}" -b:a 192k "{dst}"')
+            print(f"  {'✅' if r.returncode==0 else '❌'} [{song}] {stem_label.lower()}.mp3")
+
+        # 分析
+        print(f"📊 [{song}] 分析 14 轨...")
+        r = run(f'python3 analyze_msst.py "{stems_dir}" "{mp3_src}" '
+                f'--genre {genre} --genre-name "{genre_name}" --genre-short "{genre_short}" '
+                f'--out "{beats_out}"', capture=True, cwd=BASE)
+        if r.returncode != 0 or not os.path.exists(beats_out):
+            print(f"❌ [{song}] 分析失败: {r.stderr[-300:]}")
+            results[slug] = False
+            return
+
+        # 元数据
+        with open(beats_out) as f: d = json.load(f)
+        d.update({'artist':artist,'song':song,'icon':icon,'audio_files':{
+            'main':f'songs_audio/{slug}.mp3',
+            'drums':f'songs_audio/{slug}_stems6/drums.mp3',
+            'bass':f'songs_audio/{slug}_stems6/bass.mp3',
+            'guitar':f'songs_audio/{slug}_stems6/guitar.mp3',
+            'piano':f'songs_audio/{slug}_stems6/piano.mp3',
+            'vocals':f'songs_audio/{slug}_stems6/vocals.mp3',
+            'other':f'songs_audio/{slug}_stems6/other.mp3',
+        }})
+        with open(beats_out,'w') as f: json.dump(d,f,ensure_ascii=False,indent=2)
+        print(f"✅ [{song}] 完成 BPM={d.get('bpm')} 调性={d.get('key')}")
+        results[slug] = True
+
+    # 阶段1：串行 stem 分离（跑完所有歌的分离）
+    print("=== 阶段1：Stem 分离（串行，避免 GPU OOM）===")
     for entry in SONG_META:
-        slug, success = process_song(entry)
-        (ok if success else fail).append(entry[1]+" - "+entry[2])
+        phase1_separate(entry)
+
+    # 阶段2：并行 WAV→MP3 + 分析
+    print(f"\n=== 阶段2：转码+分析（{MAX_WORKERS} 线程并行）===")
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        futures = {ex.submit(phase2_process, e): e for e in SONG_META}
+        for f in as_completed(futures):
+            pass  # 进度已在函数内打印
+
     update_index()
-    print(f"\n✅ 成功: {len(ok)}  ❌ 失败: {len(fail)}")
-    if fail:
-        for f in fail: print(f"  ❌ {f}")
+    ok   = [e[2] for e in SONG_META if results.get(slugify(e[0])) is True]
+    fail = [e[2] for e in SONG_META if results.get(slugify(e[0])) is False]
+    print(f"\n{'='*50}")
+    print(f"✅ 成功: {len(ok)}  ❌ 失败: {len(fail)}")
+    for f in fail: print(f"  ❌ {f}")

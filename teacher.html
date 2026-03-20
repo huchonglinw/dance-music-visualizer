@@ -742,8 +742,9 @@ function showSegmentBanner(icon,text,color){
 // ══════════════════════════════════════════════════════════════
 // DAW — 同 stem 子轨合并为一个合并行
 // ══════════════════════════════════════════════════════════════
-// MERGE_STEMS: 这些 stem 的子轨合并成1行
-const MERGE_STEMS = new Set(['drums','bass','vocals','other']);
+// MERGE_STEMS: drums 子轨（kick/snare/toms/cymbals）必须独立行，才能看清
+// 只有 bass/vocals/other 的子轨可选择合并
+const MERGE_STEMS = new Set(['bass','vocals','other']); // 注意：drums 移出合并集
 let trackRows=[];
 
 function buildDAW(){
@@ -765,29 +766,29 @@ function buildDAW(){
       <span class="stem-hdr-name" style="color:${STEM_COLORS[stemName]}">${STEM_NAMES[stemName]}</span>`;
     daw.appendChild(hdr);
 
-    if(MERGE_STEMS.has(stemName) && tracks.length>1){
-      // ── 合并行：所有子轨堆叠在一个行里 ──
-      const mergedH = Math.min(16, Math.max(10, Math.floor(80/tracks.length)));
+    // drums 始终独立行；bass/vocals/other 超过1条时合并
+    const doMerge = MERGE_STEMS.has(stemName) && tracks.length > 1;
+
+    if(doMerge){
+      // ── 合并行 ──
+      const mergedH = Math.min(18, Math.max(12, Math.floor(72/tracks.length)));
       const totalH  = mergedH * tracks.length;
       const row=document.createElement('div');
       row.className='tr-merged';
       row.id='tr-'+stemName;
       row.style.height=totalH+'px';
 
-      // 标签：显示 stem 名 + 子轨缩写
       const label=document.createElement('div');
       label.className='tr-label';
-      label.style.flexDirection='column';label.style.gap='0';label.style.alignItems='flex-start';
-      label.innerHTML=`<span style="font-size:.6rem;font-weight:700;color:${STEM_COLORS[stemName]};padding:2px 0 0 2px">${STEM_ICONS[stemName]} ${STEM_NAMES[stemName].split(' ')[0]}</span>
-        <div style="display:flex;flex-direction:column;gap:0;width:100%">
-          ${tracks.map(tc=>`<span style="font-size:.38rem;color:${tc.color};padding-left:4px;line-height:1.6">${tc.label.replace(/[^A-Za-z\u4e00-\u9fff ]/g,'').trim().split(' ').slice(-1)[0]||tc.label}</span>`).join('')}
+      label.style.cssText='flex-direction:column;gap:0;align-items:flex-start;justify-content:center';
+      label.innerHTML=`<span style="font-size:.58rem;font-weight:700;color:${STEM_COLORS[stemName]};padding:2px 0 0 4px">${STEM_ICONS[stemName]} ${STEM_NAMES[stemName].split(' ')[0]}</span>
+        <div style="display:flex;flex-direction:column;width:100%">
+          ${tracks.map(tc=>`<span style="font-size:.38rem;color:${tc.color};padding-left:6px;line-height:${mergedH}px">${tc.label.split(' ').pop()}</span>`).join('')}
         </div>`;
 
-      // 子轨 canvas 堆栈
       const stack=document.createElement('div');
       stack.className='tr-sub-stack';
 
-      // Overlay 气泡（合并行共用一个）
       const overlay=document.createElement('div');
       overlay.className='tr-overlay';
       const bubble=document.createElement('div');
@@ -800,15 +801,12 @@ function buildDAW(){
       tracks.forEach(tc=>{
         const subData=STEMS[tc.name]||{};
         const cv=document.createElement('canvas');
-        cv.style.display='block';
-        cv.style.width='100%';
-        cv.style.height=mergedH+'px';
-        cv.style.flexShrink='0';
+        cv.style.display='block';cv.style.width='100%';cv.style.height=mergedH+'px';cv.style.flexShrink='0';
         stack.appendChild(cv);
-        trackRows.push({cv,wrap:stack,row,tc,stemName,subData,w:0,h:0,flashTimer:0,bubble,mergedH});
+        trackRows.push({cv,wrap:stack,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble,mergedH});
       });
     } else {
-      // ── 独立行 ──
+      // ── 独立行（drums 和单条子轨都走这里）──
       tracks.forEach(tc=>{
         const subData=STEMS[tc.name]||{};
         const row=document.createElement('div');
@@ -829,7 +827,7 @@ function buildDAW(){
         overlay.appendChild(bubble);
         row.appendChild(label);row.appendChild(cvWrap);row.appendChild(overlay);
         daw.appendChild(row);
-        trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0,bubble});
+        trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble});
       });
     }
   });
@@ -930,226 +928,230 @@ function drawTracks(){
     }
     if(t.flashTimer>0){t.row.classList.add('flash');t.flashTimer--;}
     else t.row.classList.remove('flash');
+
+    // 内嵌 VFX 叠加
+    const xPlay=(ct/dur)*W;
+    drawInlineVFX(t.tc.name,ctx,W,H,xPlay);
   });
 }
 
 // ══════════════════════════════════════════════════════════════
-// 分乐器特色粒子动效系统
+// 轨道内嵌式 VFX 系统（DAW 风格，不出轨道边框）
 // ══════════════════════════════════════════════════════════════
-const rippleCv=document.getElementById('ripple-cv');
-const rippleCtx=rippleCv.getContext('2d');
-let vfxParticles=[]; // 统一粒子池
-let rippleDPR=window.devicePixelRatio||1;
+let trackVFX = {}; // key=trackName, val=[] particles
 
-function resizeRippleCv(){
-  const p=rippleCv.parentElement;if(!p)return;
-  const rect=p.getBoundingClientRect();
-  if(!rect.width)return;
-  rippleCv.width=rect.width*rippleDPR;
-  rippleCv.height=rect.height*rippleDPR;
-  rippleCv.style.width=rect.width+'px';
-  rippleCv.style.height=rect.height+'px';
-}
-window.addEventListener('resize',resizeRippleCv);
-setTimeout(resizeRippleCv,300);
+function pushVFX(name, p){ if(!trackVFX[name]) trackVFX[name]=[]; trackVFX[name].push(p); }
 
-// 获取轨道在 canvas 上的 {x, y, trackW}
-function getTrackPos(trackName){
-  // 合并行：先找 stem 级容器，独立行找自己
-  const MERGE_STEMS_SET=new Set(['drums','bass','vocals','other']);
-  const tc=TRACKS_CFG.find(t=>t.name===trackName);
-  const stemName=tc?.stem||trackName;
-  const rowId=MERGE_STEMS_SET.has(stemName)&&TRACKS_CFG.filter(t=>t.stem===stemName).length>1
-    ?'tr-'+stemName:'tr-'+trackName;
-  const row=document.getElementById(rowId);
-  if(!row)return null;
-  const cvRect=rippleCv.getBoundingClientRect();
-  if(!cvRect.width)return null;
-  const rowRect=row.getBoundingClientRect();
-  const dur=TOTAL,ct=getTime();
-  const LABEL_W=120;
-  const trackW=rowRect.width-LABEL_W;
-  const xRatio=dur>0?Math.min(1,ct/dur):0;
-  const x=LABEL_W+xRatio*trackW;
-  const y=rowRect.top-cvRect.top+rowRect.height/2;
-  return {x,y,trackW,rowH:rowRect.height};
-}
-
-/* ── 1. 鼓组：同心冲击波（短矩形爆破）── */
-function spawnDrumShockwave(trackName,color,intensity){
-  const p=getTrackPos(trackName);if(!p)return;
-  const cnt=intensity>0.8?3:intensity>0.5?2:1;
-  for(let i=0;i<cnt;i++){
-    vfxParticles.push({
-      type:'shock',x:p.x,y:p.y,color,
-      r:4,maxR:intensity>0.8?70:50,
-      alpha:0.9,dur:0.5,t0:performance.now()/1000+i*0.055,
-      lineW:2+intensity*2
-    });
-  }
-  // 碎片粒子
-  const frag=intensity>0.6?6:3;
-  for(let i=0;i<frag;i++){
-    const ang=Math.random()*Math.PI*2;
-    const spd=(20+Math.random()*30)*intensity;
-    vfxParticles.push({
-      type:'frag',x:p.x,y:p.y,color,
-      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
-      alpha:1,dur:0.4,t0:performance.now()/1000,
-      r:1.5+Math.random()*1.5
-    });
+function spawnVFX(trackName, color, intensity){
+  const tc = TRACKS_CFG.find(t=>t.name===trackName);
+  const stem = tc?.stem||trackName;
+  const now  = performance.now()/1000;
+  const I = intensity;
+  if(stem==='drums'){
+    // 鼓：从播放头向左冲出亮条 + 小火花
+    pushVFX(trackName,{type:'bar',t0:now,dur:0.3,color,I});
+    for(let i=0;i<2;i++) pushVFX(trackName,{type:'spark',t0:now,dur:0.28+i*0.05,color,
+      vx:-(18+Math.random()*28)*I, vy:(Math.random()-0.5)*10*I});
+  } else if(stem==='vocals'){
+    // 人声：轨道内水平扩散波纹
+    pushVFX(trackName,{type:'ripple_h',t0:now,dur:0.5,color,I});
+  } else if(stem==='bass'){
+    // 贝斯：纵向能量柱上下弹动
+    pushVFX(trackName,{type:'vbar',t0:now,dur:0.4,color,I});
+  } else if(stem==='guitar'||stem==='piano'){
+    // 弦乐：正弦波扩散后消退
+    pushVFX(trackName,{type:'sine',t0:now,dur:0.6,color,I});
+  } else {
+    // synth/fx/other：小点散射
+    for(let i=0;i<3+Math.round(I*3);i++)
+      pushVFX(trackName,{type:'dot',t0:now,dur:0.45,color,
+        vx:(Math.random()-0.5)*28*I, vy:(Math.random()-0.5)*12*I});
   }
 }
 
-/* ── 2. 人声：横向扩散波纹线（向右流动）── */
-function spawnVocalWave(trackName,color,intensity){
-  const p=getTrackPos(trackName);if(!p)return;
-  const waves=intensity>0.7?3:2;
-  for(let i=0;i<waves;i++){
-    vfxParticles.push({
-      type:'wave',x:p.x,y:p.y,color,
-      alpha:0.85,dur:0.65,t0:performance.now()/1000+i*0.07,
-      spread:intensity*60+30,height:p.rowH*0.4
-    });
-  }
-}
+function drawInlineVFX(trackName, ctx, W, H, xPlay){
+  const list = trackVFX[trackName];
+  if(!list||!list.length) return;
+  const now = performance.now()/1000;
+  trackVFX[trackName] = list.filter(p=>{
+    const age = now - p.t0;
+    if(age < 0) return true;
+    const prog = Math.min(1, age/p.dur);
+    if(prog >= 1) return false;
+    const fade = (1-prog)*(1-prog);
+    ctx.save();
+    ctx.globalAlpha = fade * 0.72; // 最多 72% 透明度，不遮挡波形
 
-/* ── 3. 贝斯：低频纵向脉冲条（上下弹动竖线）── */
-function spawnBassPulse(trackName,color,intensity){
-  const p=getTrackPos(trackName);if(!p)return;
-  const cnt=intensity>0.7?4:2;
-  for(let i=0;i<cnt;i++){
-    vfxParticles.push({
-      type:'pulse',x:p.x+(i-(cnt-1)/2)*14,y:p.y,color,
-      alpha:0.9,dur:0.45,t0:performance.now()/1000+i*0.02,
-      height:p.rowH*0.9*intensity
-    });
-  }
-}
-
-/* ── 4. 吉他/钢琴：弧形弦振动（正弦曲线向右淡出）── */
-function spawnStringArc(trackName,color,intensity){
-  const p=getTrackPos(trackName);if(!p)return;
-  const arcs=intensity>0.6?2:1;
-  for(let i=0;i<arcs;i++){
-    vfxParticles.push({
-      type:'arc',x:p.x,y:p.y,color,
-      alpha:0.8,dur:0.7,t0:performance.now()/1000+i*0.06,
-      amp:p.rowH*(0.35+Math.random()*0.2),
-      freq:3+Math.random()*2,
-      len:p.trackW*0.35
-    });
-  }
-}
-
-/* ── 5. Synth/other：粒子点散射 ── */
-function spawnParticleScatter(trackName,color,intensity){
-  const p=getTrackPos(trackName);if(!p)return;
-  const cnt=Math.round(4+intensity*6);
-  for(let i=0;i<cnt;i++){
-    const ang=(i/cnt)*Math.PI*2+Math.random()*0.3;
-    const spd=(15+Math.random()*25)*intensity;
-    vfxParticles.push({
-      type:'dot',x:p.x,y:p.y,color,
-      vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd*0.4,
-      alpha:1,dur:0.55,t0:performance.now()/1000,
-      r:1+Math.random()*2
-    });
-  }
-}
-
-/* ── 分发 ── */
-function spawnVFX(trackName,color,intensity){
-  const tc=TRACKS_CFG.find(t=>t.name===trackName);
-  const stem=tc?.stem||trackName;
-  if(stem==='drums')           spawnDrumShockwave(trackName,color,intensity);
-  else if(stem==='vocals')     spawnVocalWave(trackName,color,intensity);
-  else if(stem==='bass')       spawnBassPulse(trackName,color,intensity);
-  else if(stem==='guitar'||stem==='piano') spawnStringArc(trackName,color,intensity);
-  else                         spawnParticleScatter(trackName,color,intensity);
-}
-
-/* ── 渲染所有粒子 ── */
-function drawRipples(nowMs){
-  const W=rippleCv.width,H=rippleCv.height;
-  rippleCtx.clearRect(0,0,W,H);
-  const t=nowMs/1000;
-  vfxParticles=vfxParticles.filter(p=>{
-    if(t<p.t0)return true;
-    const age=t-p.t0,prog=Math.min(1,age/p.dur);
-    if(prog>=1)return false;
-    const a=p.alpha*(1-prog)*(1-prog);
-    rippleCtx.save();rippleCtx.globalAlpha=a;
-
-    if(p.type==='shock'){
-      const r=(p.r+(p.maxR-p.r)*prog)*rippleDPR;
-      rippleCtx.strokeStyle=p.color;
-      rippleCtx.lineWidth=Math.max(1,p.lineW*(1-prog))*rippleDPR;
-      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=10*rippleDPR*(1-prog);
-      rippleCtx.beginPath();rippleCtx.arc(p.x*rippleDPR,p.y*rippleDPR,r,0,Math.PI*2);
-      rippleCtx.stroke();
+    if(p.type==='bar'){
+      // 亮条：从播放头左侧短暂出现
+      const bw = Math.min(W*0.08, 14) * (1-prog*0.6);
+      const bx = xPlay - bw*(1+prog*1.5);
+      const bh = H * (0.6 + 0.35*Math.sin(prog*Math.PI));
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 4;
+      ctx.fillRect(Math.max(0,bx), (H-bh)/2, bw, bh);
     }
-    else if(p.type==='frag'){
-      const age2=t-p.t0,fx=p.x+p.vx*age2,fy=p.y+p.vy*age2;
-      rippleCtx.fillStyle=p.color;
-      rippleCtx.beginPath();rippleCtx.arc(fx*rippleDPR,fy*rippleDPR,p.r*rippleDPR,0,Math.PI*2);
-      rippleCtx.fill();
-    }
-    else if(p.type==='wave'){
-      const extend=p.spread*prog;
-      rippleCtx.strokeStyle=p.color;
-      rippleCtx.lineWidth=1.5*rippleDPR*(1-prog*0.5);
-      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=6*rippleDPR;
-      rippleCtx.beginPath();
-      const steps=30;
-      for(let i=0;i<=steps;i++){
-        const ix=p.x+i/steps*extend;
-        const iy=p.y+Math.sin(i/steps*Math.PI*3-prog*Math.PI)*p.height*(1-prog*0.5);
-        i===0?rippleCtx.moveTo(ix*rippleDPR,iy*rippleDPR):rippleCtx.lineTo(ix*rippleDPR,iy*rippleDPR);
+    else if(p.type==='spark'){
+      const sx = xPlay + p.vx*age;
+      const sy = H/2  + p.vy*age;
+      if(sx>=0 && sx<=W && sy>=0 && sy<=H){
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(sx, sy, 1.5, 0, Math.PI*2); ctx.fill();
       }
-      rippleCtx.stroke();
-      // 镜像下方
-      rippleCtx.beginPath();
-      for(let i=0;i<=steps;i++){
-        const ix=p.x+i/steps*extend;
-        const iy=p.y-Math.sin(i/steps*Math.PI*3-prog*Math.PI)*p.height*(1-prog*0.5)*0.6;
-        i===0?rippleCtx.moveTo(ix*rippleDPR,iy*rippleDPR):rippleCtx.lineTo(ix*rippleDPR,iy*rippleDPR);
-      }
-      rippleCtx.stroke();
     }
-    else if(p.type==='pulse'){
-      const bh=p.height*(Math.sin(prog*Math.PI));
-      rippleCtx.fillStyle=p.color;
-      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=8*rippleDPR;
-      const pw=4*rippleDPR;
-      rippleCtx.fillRect((p.x-pw/2)*rippleDPR,(p.y-bh/2)*rippleDPR,pw,bh*rippleDPR);
-    }
-    else if(p.type==='arc'){
-      const progress=prog;
-      const visLen=p.len*(1-progress*0.3);
-      rippleCtx.strokeStyle=p.color;
-      rippleCtx.lineWidth=1.8*(1-progress)*rippleDPR;
-      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=5*rippleDPR;
-      rippleCtx.beginPath();
-      const steps=40;
-      const decay=Math.exp(-progress*3);
-      for(let i=0;i<=steps;i++){
-        const ix=p.x+i/steps*visLen;
-        const iy=p.y+Math.sin(i/steps*Math.PI*p.freq)*p.amp*decay;
-        i===0?rippleCtx.moveTo(ix*rippleDPR,iy*rippleDPR):rippleCtx.lineTo(ix*rippleDPR,iy*rippleDPR);
+    else if(p.type==='ripple_h'){
+      const ext = W * 0.12 * prog; // 最多轨道宽 12%
+      const amp = H * 0.28 * (1-prog);
+      ctx.strokeStyle = p.color; ctx.lineWidth = 1;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 3;
+      ctx.beginPath();
+      for(let i=0;i<=20;i++){
+        const ix = xPlay - ext + i/20*ext*2;
+        const iy = H/2 + Math.sin(i/20*Math.PI*5 - prog*Math.PI*3)*amp;
+        i===0?ctx.moveTo(ix,iy):ctx.lineTo(ix,iy);
       }
-      rippleCtx.stroke();
+      ctx.stroke();
+    }
+    else if(p.type==='vbar'){
+      const bh = H * (0.3+0.6*p.I) * Math.sin(prog*Math.PI);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 5;
+      ctx.fillRect(xPlay-2, (H-bh)/2, 4, bh);
+    }
+    else if(p.type==='sine'){
+      const len = W * 0.09 * (1+p.I);
+      const amp = H * 0.3 * Math.exp(-prog*3.5);
+      ctx.strokeStyle = p.color; ctx.lineWidth = 1.2;
+      ctx.shadowColor = p.color; ctx.shadowBlur = 3;
+      ctx.beginPath();
+      for(let i=0;i<=24;i++){
+        const ix = xPlay - len/2 + i/24*len;
+        const iy = H/2 + Math.sin(i/24*Math.PI*4)*amp;
+        i===0?ctx.moveTo(ix,iy):ctx.lineTo(ix,iy);
+      }
+      ctx.stroke();
     }
     else if(p.type==='dot'){
-      const age2=t-p.t0,fx=p.x+p.vx*age2,fy=p.y+p.vy*age2;
-      rippleCtx.fillStyle=p.color;
-      rippleCtx.shadowColor=p.color;rippleCtx.shadowBlur=4*rippleDPR;
-      rippleCtx.beginPath();rippleCtx.arc(fx*rippleDPR,fy*rippleDPR,p.r*rippleDPR,0,Math.PI*2);
-      rippleCtx.fill();
+      const sx = xPlay + p.vx*age, sy = H/2 + p.vy*age;
+      if(sx>=0&&sx<=W&&sy>=0&&sy<=H){
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(sx, sy, 1.5, 0, Math.PI*2); ctx.fill();
+      }
     }
-    rippleCtx.restore();
+    ctx.restore();
     return true;
   });
+}
+
+// overlay canvas 隐藏（不再使用大光圈）
+const rippleCv=document.getElementById('ripple-cv');
+if(rippleCv) rippleCv.style.display='none';
+function drawRipples(){} // noop，loop() 中调用不会报错
+
+// ══════════════════════════════════════════════════════════════
+// 乐器音效合成（Web Audio API — 轻量合成，无需音频文件）
+// ══════════════════════════════════════════════════════════════
+let _sfxCtx = null;
+function getSfxCtx(){
+  if(!_sfxCtx) _sfxCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(_sfxCtx.state==='suspended') _sfxCtx.resume();
+  return _sfxCtx;
+}
+
+function sfxKick(vol=0.5){
+  // 底鼓：低频正弦快速衰减 + 噪声冲击
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const osc=ctx.createOscillator(),g=ctx.createGain();
+  osc.type='sine'; osc.frequency.setValueAtTime(120,t); osc.frequency.exponentialRampToValueAtTime(40,t+0.08);
+  g.gain.setValueAtTime(vol*1.2,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t+0.22);
+}
+
+function sfxSnare(vol=0.4){
+  // 军鼓：噪声 + 高频正弦混合
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.12,ctx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1);
+  const src=ctx.createBufferSource(),g=ctx.createGain();
+  const hpf=ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=2000;
+  src.buffer=buf; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+  src.connect(hpf); hpf.connect(g); g.connect(ctx.destination); src.start(t);
+}
+
+function sfxCymbals(vol=0.2){
+  // 镲片：高频噪声，长尾衰减
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.3,ctx.sampleRate);
+  const data=buf.getChannelData(0);
+  for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1);
+  const src=ctx.createBufferSource(),g=ctx.createGain();
+  const hpf=ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=6000;
+  src.buffer=buf; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+  src.connect(hpf); hpf.connect(g); g.connect(ctx.destination); src.start(t);
+}
+
+function sfxBass(vol=0.35){
+  // 贝斯：超低频正弦，慢衰减
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const osc=ctx.createOscillator(),g=ctx.createGain();
+  osc.type='triangle'; osc.frequency.setValueAtTime(60,t);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t+0.35);
+}
+
+function sfxVocal(vol=0.2){
+  // 人声：中频正弦 + 轻微颤音
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const osc=ctx.createOscillator(),lfo=ctx.createOscillator(),lfoG=ctx.createGain(),g=ctx.createGain();
+  osc.type='sine'; osc.frequency.setValueAtTime(440,t);
+  lfo.frequency.value=5; lfoG.gain.value=8;
+  lfo.connect(lfoG); lfoG.connect(osc.frequency);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+  osc.connect(g); g.connect(ctx.destination);
+  lfo.start(t); osc.start(t); osc.stop(t+0.25); lfo.stop(t+0.25);
+}
+
+function sfxString(vol=0.25){
+  // 弦乐：中高频正弦快速弹拨
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const osc=ctx.createOscillator(),g=ctx.createGain();
+  osc.type='sawtooth'; osc.frequency.setValueAtTime(330,t);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t+0.18);
+}
+
+function sfxSynth(vol=0.2){
+  const ctx=getSfxCtx(),t=ctx.currentTime;
+  const osc=ctx.createOscillator(),g=ctx.createGain();
+  osc.type='square'; osc.frequency.setValueAtTime(880,t); osc.frequency.exponentialRampToValueAtTime(660,t+0.1);
+  g.gain.setValueAtTime(vol*0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t); osc.stop(t+0.15);
+}
+
+// 分发音效
+let _sfxEnabled = true; // 可通过 UI 关闭
+let _lastSfxT = {};
+function playSFX(trackName, stemName){
+  if(!_sfxEnabled) return;
+  const now = performance.now();
+  if(now - (_lastSfxT[trackName]||0) < 80) return; // 防止同轨过频
+  _lastSfxT[trackName] = now;
+  try{
+    if(trackName==='kick')          sfxKick();
+    else if(trackName==='snare')    sfxSnare();
+    else if(trackName==='cymbals')  sfxCymbals();
+    else if(trackName==='toms')     sfxSnare(0.25);
+    else if(stemName==='bass')      sfxBass();
+    else if(stemName==='vocals')    sfxVocal();
+    else if(stemName==='guitar')    sfxString();
+    else if(stemName==='piano')     sfxString(0.2);
+    else                            sfxSynth();
+  }catch(e){}
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1161,13 +1163,16 @@ let trackLastHit={},trackHitCount={};
 function triggerHitVFX(name,color){
   const seg=document.getElementById('hs-'+name);
   if(seg){seg.classList.remove('active');void seg.offsetWidth;seg.classList.add('active');}
-  // 分乐器 VFX
+  // 分乐器 VFX + 音效
   const ct=getTime();
+  const tc=TRACKS_CFG.find(t=>t.name===name);
+  const stemName=tc?.stem||name;
   const gap=ct-(trackLastHit[name]||0);
   trackLastHit[name]=ct;
   trackHitCount[name]=gap<0.55?(trackHitCount[name]||0)+1:1;
   const intensity=Math.min(1,0.3+trackHitCount[name]*0.22);
   spawnVFX(name,color,intensity);
+  playSFX(name,stemName);  // 乐器音效
   if(trackHitCount[name]>=3){
     setTimeout(()=>spawnVFX(name,color,intensity*0.5),60);
   }
