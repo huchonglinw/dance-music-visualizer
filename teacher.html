@@ -549,62 +549,89 @@ const FFT=4096;
 let _ready=false;
 const DPR=devicePixelRatio||1;
 
-// ── 每轨独立 audio 元素 + GainNode（无滤波器，DrumSep AI 分离）──
-let trackGains = {};   // trackName → GainNode
+// ── 双架构音频路由 ──
+// DrumSep/full 型：每轨独立 <audio> + GainNode
+// Band 型：父 stem <audio> → Analyser → HPF → LPF → 独立 GainNode（每子轨独立通路）
+let trackGains = {};    // trackName → GainNode（每轨专属，互不干扰）
+let trackFilters = {};  // trackName → {hpf, lpf}（band 型专用）
+
+// 判断轨道是否有独立 <audio> 元素（DrumSep 型 + guitar/piano）
+function isIndepAudio(tc){
+  return !!(STEM_AUDS[tc.stem] && tc.stem === tc.name);
+}
 
 function initAudio(){
-  if(_ready)return;
+  if(_ready) return;
   try{
-    actx=new(window.AudioContext||window.webkitAudioContext)();
-    AUD.volume=0;AUD.muted=true;
+    actx = new(window.AudioContext||window.webkitAudioContext)();
+    AUD.volume=0; AUD.muted=true;
 
-    // 鼓组子轨映射：如果有独立 kick/snare/toms/hh/cymbals 音频
-    // 则鼓组子轨直接使用独立音频源，drums 主轨 mute（避免重复）
     const hasDrumSep = !!(STEM_AUDS.kick?.src && STEM_AUDS.kick.src !== '');
 
-    // 收集所有需要接入的 stem 名称
-    const allStems = ['drums','bass','guitar','piano','vocals','other'];
-    if(hasDrumSep) allStems.push('kick','snare','toms','hh','cymbals');
+    // ── Step 1：为每个有效 stem <audio> 建 MediaElementSource + Analyser ──
+    const stemNames = ['drums','bass','guitar','piano','vocals','other'];
+    if(hasDrumSep) stemNames.push('kick','snare','toms','hh','cymbals');
 
-    allStems.forEach(stemName=>{
+    stemNames.forEach(stemName => {
       const aud = STEM_AUDS[stemName];
       if(!aud || !aud.src) return;
-
       const src = actx.createMediaElementSource(aud);
       stemSrcs[stemName] = src;
-
       const analyser = actx.createAnalyser();
       analyser.fftSize=FFT; analyser.smoothingTimeConstant=0.72;
       analyser.minDecibels=-95; analyser.maxDecibels=-5;
       stemAnalysers[stemName] = analyser;
-
-      const gain = actx.createGain();
-      gain.gain.value = 1;
-
-      // 如果有 DrumSep，drums 主轨静音（避免和子轨重复）
+      src.connect(analyser);
+      // drums 主轨 Analyser 接一个 gain=0 的节点防止直通
       if(hasDrumSep && stemName === 'drums'){
-        gain.gain.value = 0;
-      }
-
-      src.connect(gain);
-      gain.connect(analyser);
-      analyser.connect(actx.destination);
-
-      // 为该 stem 下的所有轨道共享同一个 gain
-      const tracks = TRACKS_CFG.filter(tc => tc.stem === stemName);
-      tracks.forEach(tc => {
-        trackGains[tc.name] = gain;
-      });
-
-      // 如果没有轨道映射到这个 stem（比如 drums 主轨），也记录
-      if(tracks.length === 0){
-        trackGains[stemName] = gain;
+        const silentGain = actx.createGain();
+        silentGain.gain.value = 0;
+        analyser.connect(silentGain);
+        silentGain.connect(actx.destination);
+        trackGains['drums'] = silentGain;
       }
     });
 
-    _ready=true;
-    console.log('🎛 Audio: DrumSep 独立音频架构已初始化，', Object.keys(trackGains).length, '轨');
-  }catch(e){console.warn('AudioCtx:',e)}
+    // ── Step 2：为每条 TRACKS_CFG 建专属独立 GainNode ──
+    TRACKS_CFG.forEach(tc => {
+      const analyser = stemAnalysers[tc.stem];
+      if(!analyser) return;
+
+      if(tc.type === 'band'){
+        // Band 型：Analyser → HPF → LPF → 独立 GainNode → destination
+        const hpf = actx.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = tc.lo || 20;
+        hpf.Q.value = 0.7;
+        const lpf = actx.createBiquadFilter();
+        lpf.type = 'lowpass';
+        lpf.frequency.value = tc.hi || 20000;
+        lpf.Q.value = 0.7;
+        const gain = actx.createGain();
+        gain.gain.value = 1;
+        analyser.connect(hpf);
+        hpf.connect(lpf);
+        lpf.connect(gain);
+        gain.connect(actx.destination);
+        trackGains[tc.name] = gain;
+        trackFilters[tc.name] = {hpf, lpf};
+      } else {
+        // Full/DrumSep 型：Analyser → 独立 GainNode → destination
+        // （drums 主轨已在 Step 1 处理，这里跳过）
+        if(tc.stem === 'drums' && hasDrumSep && tc.name !== tc.stem) return;
+        const gain = actx.createGain();
+        gain.gain.value = 1;
+        analyser.connect(gain);
+        gain.connect(actx.destination);
+        trackGains[tc.name] = gain;
+      }
+    });
+
+    _ready = true;
+    console.log('🎛 Audio: 双架构初始化完成 —',
+      Object.keys(trackGains).length, '轨 trackGains,',
+      Object.keys(trackFilters).length, '条 BiquadFilter 链');
+  } catch(e){ console.warn('AudioCtx:', e); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -932,7 +959,7 @@ function buildDAW(){
       overlay.appendChild(bubble);
       row.appendChild(label);row.appendChild(cvWrap);row.appendChild(overlay);
       daw.appendChild(row);
-      trackRows.push({cv,wrap:cvWrap,row,tc,stemName,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble});
+      trackRows.push({cv,wrap:cvWrap,row,tc,stemName:tc.stem,subData,w:0,h:0,flashTimer:0,hitFlash:0,bubble});
     });
   });
 
@@ -1579,15 +1606,35 @@ let _playing=false;
 function tp(){_playing?pa():pl();}
 function pl(){
   initAudio();
-  if(actx?.state==='suspended')actx.resume();
-  Object.values(STEM_AUDS).forEach(a=>a.play().catch(()=>{}));
-  _playing=true;document.getElementById('pb').textContent='⏸';
+  if(actx?.state==='suspended') actx.resume();
+  const t = getTime();
+  Object.values(STEM_AUDS).forEach(a=>{
+    if(!a.src) return;
+    // 如果某个 audio 时间漂移超 0.3s，重新同步（防止 bass 等静默暂停后跑偏）
+    if(Math.abs(a.currentTime - t) > 0.3) a.currentTime = t;
+    a.play().catch(()=>{});
+  });
+  _playing=true; document.getElementById('pb').textContent='⏸';
 }
 function pa(){
+  _playing=false; document.getElementById('pb').textContent='▶';
   Object.values(STEM_AUDS).forEach(a=>a.pause());
-  _playing=false;document.getElementById('pb').textContent='▶';
 }
-function syncTime(t){Object.values(STEM_AUDS).forEach(a=>{a.currentTime=t;});}
+function syncTime(t){
+  Object.values(STEM_AUDS).forEach(a=>{ a.currentTime=t; });
+}
+
+// 任意 stem audio 意外静默暂停时（非用户操作），自动恢复同步
+Object.values(STEM_AUDS).forEach(a=>{
+  a.addEventListener('pause', ()=>{
+    // _playing 为 true 说明用户期望播放，audio 自己暂停了 → 重新 play
+    if(_playing && a.src){
+      const t = getTime();
+      if(Math.abs(a.currentTime - t) > 0.5) a.currentTime = t;
+      a.play().catch(()=>{});
+    }
+  });
+});
 
 (STEM_AUDS.kick || STEM_AUDS.drums).addEventListener('ended',()=>{_playing=false;document.getElementById('pb').textContent='▶';});
 function skipB(n){
@@ -1603,8 +1650,27 @@ function ss(v,btn){
   document.querySelectorAll('.spd').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
 }
-// ── Mute 控制（按轨道展开 + 全选/Solo 反选）──
+// ── Mute 控制（双架构：DrumSep 型控制 audio.muted，Band 型只控制 gain）──
 let _soloTrack = null; // 当前 solo 的轨道名
+
+// 设置单个轨道的 gain（ramp 防爆音）
+function setTrackGain(name, value){
+  const g = trackGains[name];
+  if(!g) return;
+  const ct = actx ? actx.currentTime : 0;
+  g.gain.cancelScheduledValues(ct);
+  g.gain.setTargetAtTime(value, ct, 0.015);
+}
+
+// 更新父 stem 的 audio.muted 状态（band 型子轨：只要有任意一轨未 mute，父 audio 就不 mute）
+function syncParentAudioMute(stem){
+  const aud = STEM_AUDS[stem];
+  if(!aud) return;
+  const tracksOfStem = TRACKS_CFG.filter(t => t.stem === stem);
+  if(tracksOfStem.length === 0) return;
+  const anyActive = tracksOfStem.some(t => !trackMuted[t.name]);
+  aud.muted = !anyActive;
+}
 
 function buildMixerBar(){
   const bar = document.getElementById('mixerBar');
@@ -1656,23 +1722,31 @@ function toggleTrack(btn){
   trackMuted[name] = !trackMuted[name];
   btn.classList.toggle('muted', trackMuted[name]);
   btn.classList.toggle('on', !trackMuted[name]);
-  syncStemMute(stem);
+  // DrumSep/full 独立型：直接控制 audio.muted + gain
+  const tc = TRACKS_CFG.find(t => t.name === name);
+  if(tc && isIndepAudio(tc)){
+    const aud = STEM_AUDS[tc.stem];
+    if(aud) aud.muted = trackMuted[name];
+  } else {
+    // Band 型：只改自己的 gain，父 audio 按子轨整体状态决定
+    syncParentAudioMute(stem);
+  }
+  setTrackGain(name, trackMuted[name] ? 0 : 1);
 }
 
 function syncStemMute(stem){
-  const allTracksOfStem = TRACKS_CFG.filter(t=>t.stem===stem);
-  allTracksOfStem.forEach(tc=>{
-    // 每个子轨直接控制自己的 stem audio 元素
-    const aud = STEM_AUDS[tc.stem];
-    if(aud) { aud.muted = trackMuted[tc.name]; stemMuted[tc.stem] = trackMuted[tc.name]; }
-    // gain 节点控制
-    const g = trackGains[tc.name];
-    if(g){
-      const t = actx ? actx.currentTime : 0;
-      g.gain.cancelScheduledValues(t);
-      g.gain.setTargetAtTime(trackMuted[tc.name] ? 0 : 1, t, 0.015);
+  // 此函数保留作兼容入口，实际逻辑已在 toggleTrack 中完成
+  const tracks = TRACKS_CFG.filter(t => t.stem === stem);
+  tracks.forEach(tc => {
+    if(isIndepAudio(tc)){
+      const aud = STEM_AUDS[tc.stem];
+      if(aud) aud.muted = trackMuted[tc.name];
     }
+    setTrackGain(tc.name, trackMuted[tc.name] ? 0 : 1);
   });
+  // band 型父 audio
+  const hasBand = tracks.some(tc => !isIndepAudio(tc));
+  if(hasBand) syncParentAudioMute(stem);
 }
 
 function muteAll(muted){
@@ -1681,27 +1755,31 @@ function muteAll(muted){
     trackMuted[tc.name] = muted;
     const btn = document.getElementById('mx-'+tc.name);
     if(btn){ btn.classList.toggle('muted', muted); btn.classList.toggle('on', !muted); btn.classList.remove('solo'); }
-    // 同步 gain 节点（ramp 防爆音）
-    const g = trackGains[tc.name];
-    if(g){
-      const ct = actx ? actx.currentTime : 0;
-      g.gain.cancelScheduledValues(ct);
-      g.gain.setTargetAtTime(muted ? 0 : 1, ct, 0.015);
-    }
+    setTrackGain(tc.name, muted ? 0 : 1);
   });
+  // 更新所有 audio 元素的 muted 状态
   Object.keys(STEM_AUDS).forEach(k=>{
-    // drums 主轨始终 mute（DrumSep 子轨替代）
-    if(k === 'drums' && STEM_AUDS.kick?.src) { STEM_AUDS[k].muted = true; stemMuted[k] = true; return; }
-    STEM_AUDS[k].muted = muted; stemMuted[k] = muted;
+    // drums 主轨始终静音（DrumSep 子轨替代）
+    if(k === 'drums' && STEM_AUDS.kick?.src){ STEM_AUDS[k].muted = true; return; }
+    // DrumSep/full 独立型：直接 mute
+    const indep = TRACKS_CFG.filter(tc => tc.stem === k && isIndepAudio(tc));
+    if(indep.length > 0){
+      STEM_AUDS[k].muted = muted;
+    } else {
+      // band 型父 stem：按子轨整体状态
+      syncParentAudioMute(k);
+    }
   });
 }
 
 function soloTrack(name){
   _soloTrack = name;
-  const tc = TRACKS_CFG.find(t=>t.name===name);
+  const tc = TRACKS_CFG.find(t => t.name === name);
   const soloStem = tc?.stem;
+
+  // 1. 更新所有轨道的 trackMuted + UI + gain
   TRACKS_CFG.forEach(t=>{
-    const isSolo = (t.name===name);
+    const isSolo = (t.name === name);
     trackMuted[t.name] = !isSolo;
     const btn = document.getElementById('mx-'+t.name);
     if(btn){
@@ -1709,35 +1787,26 @@ function soloTrack(name){
       btn.classList.toggle('on', isSolo);
       btn.classList.toggle('solo', isSolo);
     }
-    // gain 节点：只开 solo 轨（ramp 防爆音）
-    const g = trackGains[t.name];
-    if(g){
-      const ct = actx ? actx.currentTime : 0;
-      g.gain.cancelScheduledValues(ct);
-      g.gain.setTargetAtTime(isSolo ? 1 : 0, ct, 0.015);
-    }
+    setTrackGain(t.name, isSolo ? 1 : 0);
   });
-  // 音频源：只打开 solo 轨对应的 stem，其他全 mute
+
+  // 2. 更新 audio 元素的 muted 状态
   Object.keys(STEM_AUDS).forEach(k=>{
-    // drums 主轨始终 mute（DrumSep 子轨替代）
-    if(k === 'drums' && STEM_AUDS.kick?.src) { STEM_AUDS[k].muted = true; stemMuted[k] = true; return; }
-    STEM_AUDS[k].muted = (k !== soloStem);
-    stemMuted[k] = (k !== soloStem);
+    if(k === 'drums' && STEM_AUDS.kick?.src){ STEM_AUDS[k].muted = true; return; }
+    const indep = TRACKS_CFG.filter(tc => tc.stem === k && isIndepAudio(tc));
+    if(indep.length > 0){
+      // 独立型：只有 soloStem 对应的不 mute
+      STEM_AUDS[k].muted = (k !== soloStem);
+    } else {
+      // band 型父 stem：该 stem 下有 solo 子轨就不 mute
+      STEM_AUDS[k].muted = (k !== soloStem);
+    }
   });
 }
 
 function exitSolo(){
   _soloTrack = null;
   muteAll(false);
-  // 确保所有 gain 恢复（ramp 防爆音）
-  TRACKS_CFG.forEach(tc=>{
-    const g = trackGains[tc.name];
-    if(g){
-      const ct = actx ? actx.currentTime : 0;
-      g.gain.cancelScheduledValues(ct);
-      g.gain.setTargetAtTime(1, ct, 0.015);
-    }
-  });
 }
 function setVol(v){Object.values(STEM_AUDS).forEach(a=>a.volume=v);}
 function fmt(s){if(!isFinite(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
