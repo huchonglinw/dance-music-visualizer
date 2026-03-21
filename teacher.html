@@ -550,14 +550,22 @@ let _ready=false;
 const DPR=devicePixelRatio||1;
 
 // ── 双架构音频路由 ──
-// DrumSep/full 型：每轨独立 <audio> + GainNode
-// Band 型：父 stem <audio> → Analyser → HPF → LPF → 独立 GainNode（每子轨独立通路）
-let trackGains = {};    // trackName → GainNode（每轨专属，互不干扰）
-let trackFilters = {};  // trackName → {hpf, lpf}（band 型专用）
+// DrumSep 型（kick/snare/toms/hh/cymbals）：独立 <audio>，独立 GainNode，可单独 mute
+// Full 独立型（guitar/piano）：独立 <audio>，独立 GainNode，可单独 mute
+// Band 型（bass_sub/bass_mid, vocal_lo/mid/hi, other_low/synth/fx）：
+//   共享父 stem 完整音频输出（不做频段切割，切割会丢失音频内容）
+//   mute 控制父 stem audio.muted；同 stem 内所有子轨同进退
+let trackGains = {};    // trackName → GainNode（每轨专属）
+let trackFilters = {};  // 保留空对象，兼容诊断代码
 
 // 判断轨道是否有独立 <audio> 元素（DrumSep 型 + guitar/piano）
 function isIndepAudio(tc){
   return !!(STEM_AUDS[tc.stem] && tc.stem === tc.name);
+}
+
+// 获取 band 型轨道对应的父 stem 名称
+function parentStem(tc){
+  return tc.stem; // bass_sub → 'bass', vocal_lo → 'vocals', etc.
 }
 
 function initAudio(){
@@ -568,69 +576,50 @@ function initAudio(){
 
     const hasDrumSep = !!(STEM_AUDS.kick?.src && STEM_AUDS.kick.src !== '');
 
-    // ── Step 1：为每个有效 stem <audio> 建 MediaElementSource + Analyser ──
+    // ── Step 1：为每个有效 stem <audio> 建 MediaElementSource + Analyser + GainNode ──
     const stemNames = ['drums','bass','guitar','piano','vocals','other'];
     if(hasDrumSep) stemNames.push('kick','snare','toms','hh','cymbals');
+
+    const stemGains = {}; // stemName → GainNode（stem 级别，band 型子轨共享）
 
     stemNames.forEach(stemName => {
       const aud = STEM_AUDS[stemName];
       if(!aud || !aud.src) return;
+
       const src = actx.createMediaElementSource(aud);
       stemSrcs[stemName] = src;
+
       const analyser = actx.createAnalyser();
       analyser.fftSize=FFT; analyser.smoothingTimeConstant=0.72;
       analyser.minDecibels=-95; analyser.maxDecibels=-5;
       stemAnalysers[stemName] = analyser;
+
+      const gain = actx.createGain();
+      // drums 主轨在有 DrumSep 时静音
+      gain.gain.value = (hasDrumSep && stemName === 'drums') ? 0 : 1;
+
       src.connect(analyser);
-      // drums 主轨 Analyser 接一个 gain=0 的节点防止直通
-      if(hasDrumSep && stemName === 'drums'){
-        const silentGain = actx.createGain();
-        silentGain.gain.value = 0;
-        analyser.connect(silentGain);
-        silentGain.connect(actx.destination);
-        trackGains['drums'] = silentGain;
-      }
+      analyser.connect(gain);
+      gain.connect(actx.destination);
+
+      stemGains[stemName] = gain;
     });
 
-    // ── Step 2：为每条 TRACKS_CFG 建专属独立 GainNode ──
+    // ── Step 2：将 trackGains 映射到对应的 stem GainNode ──
+    // DrumSep/full 独立型：每轨对应自己 stem 的 GainNode（一对一）
+    // Band 型：多个子轨共享父 stem 的 GainNode
     TRACKS_CFG.forEach(tc => {
-      const analyser = stemAnalysers[tc.stem];
-      if(!analyser) return;
-
-      if(tc.type === 'band'){
-        // Band 型：Analyser → HPF → LPF → 独立 GainNode → destination
-        const hpf = actx.createBiquadFilter();
-        hpf.type = 'highpass';
-        hpf.frequency.value = tc.lo || 20;
-        hpf.Q.value = 0.7;
-        const lpf = actx.createBiquadFilter();
-        lpf.type = 'lowpass';
-        lpf.frequency.value = tc.hi || 20000;
-        lpf.Q.value = 0.7;
-        const gain = actx.createGain();
-        gain.gain.value = 1;
-        analyser.connect(hpf);
-        hpf.connect(lpf);
-        lpf.connect(gain);
-        gain.connect(actx.destination);
-        trackGains[tc.name] = gain;
-        trackFilters[tc.name] = {hpf, lpf};
-      } else {
-        // Full/DrumSep 型：Analyser → 独立 GainNode → destination
-        // （drums 主轨已在 Step 1 处理，这里跳过）
-        if(tc.stem === 'drums' && hasDrumSep && tc.name !== tc.stem) return;
-        const gain = actx.createGain();
-        gain.gain.value = 1;
-        analyser.connect(gain);
-        gain.connect(actx.destination);
-        trackGains[tc.name] = gain;
-      }
+      const g = stemGains[tc.stem];
+      if(g) trackGains[tc.name] = g;
     });
+
+    // drums 主轨本身也注册（但 TRACKS_CFG 里没有 name='drums' 的轨道）
+    if(stemGains['drums']) trackGains['drums'] = stemGains['drums'];
 
     _ready = true;
     console.log('🎛 Audio: 双架构初始化完成 —',
-      Object.keys(trackGains).length, '轨 trackGains,',
-      Object.keys(trackFilters).length, '条 BiquadFilter 链');
+      Object.keys(trackGains).length, '轨 trackGains |',
+      hasDrumSep ? 'DrumSep模式' : '标准模式');
   } catch(e){ console.warn('AudioCtx:', e); }
 }
 
@@ -1722,20 +1711,24 @@ function toggleTrack(btn){
   trackMuted[name] = !trackMuted[name];
   btn.classList.toggle('muted', trackMuted[name]);
   btn.classList.toggle('on', !trackMuted[name]);
-  // DrumSep/full 独立型：直接控制 audio.muted + gain
+
   const tc = TRACKS_CFG.find(t => t.name === name);
   if(tc && isIndepAudio(tc)){
+    // DrumSep/full 独立型：直接控制自己的 audio.muted + gain
     const aud = STEM_AUDS[tc.stem];
     if(aud) aud.muted = trackMuted[name];
+    setTrackGain(name, trackMuted[name] ? 0 : 1);
   } else {
-    // Band 型：只改自己的 gain，父 audio 按子轨整体状态决定
+    // Band 型：mute 整个父 stem（同 stem 所有子轨同进退）
+    // 判断该 stem 下是否所有子轨都被 mute
     syncParentAudioMute(stem);
+    // gain 也同步到父 stem 的状态
+    const anyActive = TRACKS_CFG.filter(t => t.stem === stem).some(t => !trackMuted[t.name]);
+    setTrackGain(name, anyActive ? 1 : 0); // 所有子轨共享同一 gain，设任意一个即可
   }
-  setTrackGain(name, trackMuted[name] ? 0 : 1);
 }
 
 function syncStemMute(stem){
-  // 此函数保留作兼容入口，实际逻辑已在 toggleTrack 中完成
   const tracks = TRACKS_CFG.filter(t => t.stem === stem);
   tracks.forEach(tc => {
     if(isIndepAudio(tc)){
@@ -1744,7 +1737,6 @@ function syncStemMute(stem){
     }
     setTrackGain(tc.name, trackMuted[tc.name] ? 0 : 1);
   });
-  // band 型父 audio
   const hasBand = tracks.some(tc => !isIndepAudio(tc));
   if(hasBand) syncParentAudioMute(stem);
 }
@@ -1757,18 +1749,10 @@ function muteAll(muted){
     if(btn){ btn.classList.toggle('muted', muted); btn.classList.toggle('on', !muted); btn.classList.remove('solo'); }
     setTrackGain(tc.name, muted ? 0 : 1);
   });
-  // 更新所有 audio 元素的 muted 状态
+  // 更新所有 audio 元素
   Object.keys(STEM_AUDS).forEach(k=>{
-    // drums 主轨始终静音（DrumSep 子轨替代）
     if(k === 'drums' && STEM_AUDS.kick?.src){ STEM_AUDS[k].muted = true; return; }
-    // DrumSep/full 独立型：直接 mute
-    const indep = TRACKS_CFG.filter(tc => tc.stem === k && isIndepAudio(tc));
-    if(indep.length > 0){
-      STEM_AUDS[k].muted = muted;
-    } else {
-      // band 型父 stem：按子轨整体状态
-      syncParentAudioMute(k);
-    }
+    STEM_AUDS[k].muted = muted;
   });
 }
 
@@ -1777,10 +1761,12 @@ function soloTrack(name){
   const tc = TRACKS_CFG.find(t => t.name === name);
   const soloStem = tc?.stem;
 
-  // 1. 更新所有轨道的 trackMuted + UI + gain
   TRACKS_CFG.forEach(t=>{
     const isSolo = (t.name === name);
-    trackMuted[t.name] = !isSolo;
+    // Band 型：同 stem 的其他子轨也算激活（它们共享同一音频）
+    const isSameStem = (t.stem === soloStem) && !isIndepAudio(t);
+    const isActive = isSolo || (isSameStem && !isIndepAudio(tc));
+    trackMuted[t.name] = !isSolo; // UI 上只高亮 solo 那一轨
     const btn = document.getElementById('mx-'+t.name);
     if(btn){
       btn.classList.toggle('muted', !isSolo);
@@ -1790,17 +1776,10 @@ function soloTrack(name){
     setTrackGain(t.name, isSolo ? 1 : 0);
   });
 
-  // 2. 更新 audio 元素的 muted 状态
+  // audio 元素：只打开 solo 轨对应的 stem
   Object.keys(STEM_AUDS).forEach(k=>{
     if(k === 'drums' && STEM_AUDS.kick?.src){ STEM_AUDS[k].muted = true; return; }
-    const indep = TRACKS_CFG.filter(tc => tc.stem === k && isIndepAudio(tc));
-    if(indep.length > 0){
-      // 独立型：只有 soloStem 对应的不 mute
-      STEM_AUDS[k].muted = (k !== soloStem);
-    } else {
-      // band 型父 stem：该 stem 下有 solo 子轨就不 mute
-      STEM_AUDS[k].muted = (k !== soloStem);
-    }
+    STEM_AUDS[k].muted = (k !== soloStem);
   });
 }
 
